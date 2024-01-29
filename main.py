@@ -5,13 +5,24 @@ from dotenv import load_dotenv
 from datetime import datetime
 import os
 import json
+import sys
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import gettz
 
 NIGHT_TIME_START_HOUR = 22
 NIGHT_TIME_END_HOUR = 9
+logger: logging.Logger
+
+def handle_unhandled_exceptions(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
+
 
 def main():
+    global logger
     logger = logging.getLogger('my_logger')
     logger.setLevel(logging.DEBUG)
     handler = logging.FileHandler(filename='!log.txt', encoding='utf-8')
@@ -19,6 +30,8 @@ def main():
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    sys.excepthook = handle_unhandled_exceptions
 
     load_dotenv()
     BOT_TOKEN = get_env('BOT_TOKEN')
