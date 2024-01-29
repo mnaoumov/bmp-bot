@@ -15,7 +15,6 @@ def main():
     app = Flask(__name__)
     load_dotenv()
     WEBHOOK_SECRET = get_env('WEBHOOK_SECRET')
-    app.run(host='0.0.0.0', port=5000)
 
     @app.route('/webhook', methods=['POST'])
     def webhook():
@@ -31,6 +30,8 @@ def main():
             return '', 200
         else:
             return '', 400
+
+    app.run(host='0.0.0.0', port=5000)
 
 if __name__ == '__main__':
     main()
