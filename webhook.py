@@ -40,12 +40,9 @@ def main():
     @app.route('/webhook', methods=['POST'])
     def webhook():
         if request.method == 'POST':
-            # Verify if the request is from GitHub
-            signature = request.headers.get('X-Hub-Signature')
-            sha, signature = signature.split('=')
-            mac = hmac.new(bytes(WEBHOOK_SECRET, 'utf-8'), msg=request.data, digestmod=hashlib.sha1)
-            if not hmac.compare_digest(str(mac.hexdigest()), str(signature)):
-                abort(403)  # Forbidden
+            request_secret = request.headers.get('X-Webhook-Secret')
+            if request_secret != WEBHOOK_SECRET:
+                abort(403)
 
             subprocess.run(['sh', './reinstall.sh'])
             return '', 200
