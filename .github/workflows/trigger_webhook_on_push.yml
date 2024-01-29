@@ -9,4 +9,4 @@ jobs:
     steps:
     - name: Trigger Webhook
       run: |
-        curl -X POST -H 'X-Hub-Signature: ${{ secrets.WEBHOOK_SECRET }}' http://wiki.batkomaepravo.org:5000/webhook
+        curl -X POST -H 'X-Webhook-Secret: ${{ secrets.WEBHOOK_SECRET }}' http://wiki.batkomaepravo.org:5000/webhook
