@@ -1,0 +1,11 @@
+[Unit]
+Description=Batko Mae Pravo Bot
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /root/bmp-bot/main.py
+WorkingDirectory=/root/bmp-bot/main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
