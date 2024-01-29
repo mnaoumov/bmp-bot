@@ -9,4 +9,4 @@ jobs:
     steps:
     - name: Trigger Webhook
       run: |
-        curl -X POST http://wiki.batkomaepravo.org:5000/webhook'
+        curl -X POST http://wiki.batkomaepravo.org:5000/webhook
