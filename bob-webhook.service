@@ -1,0 +1,11 @@
+[Unit]
+Description=Batko Mae Pravo Bot - Webhook
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /root/bmp-bot/webhook.py
+WorkingDirectory=/root/bmp-bot
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
