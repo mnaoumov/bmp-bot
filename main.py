@@ -134,6 +134,9 @@ def save_users() -> None:
 
 
 async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message is None:
+        return
+
     if update.message.chat_id == BMP_CHAT_ID:
         if is_night_time and (
             update.message.reply_to_message is None
