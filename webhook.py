@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 from dotenv import load_dotenv
+from threading import Thread
 
 def get_env(key: str) -> str:
     value = os.getenv(key)
@@ -43,12 +44,22 @@ def main():
             if request_secret != WEBHOOK_SECRET:
                 abort(403)
 
-            asyncio.create_task(asyncio.create_subprocess_exec(['sh', './reinstall.sh']))
+            Thread(target=run_in_new_loop, args=(runReinstall,)).start()
             return '', 200
         else:
             return '', 400
 
     app.run(host='0.0.0.0', port=5000)
+
+def run_in_new_loop(coro):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(coro())
+    loop.close()
+
+async def runReinstall():
+    await asyncio.sleep(1)
+    subprocess.run(['sh', './reinstall.sh'])
 
 if __name__ == '__main__':
     main()
