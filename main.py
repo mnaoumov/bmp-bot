@@ -1,3 +1,4 @@
+import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler
 import logging
@@ -21,7 +22,7 @@ def handle_unhandled_exceptions(exc_type, exc_value, exc_traceback):
     logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
 
 
-def main():
+async def main():
     global logger
     logger = logging.getLogger('my_logger')
     logger.setLevel(logging.DEBUG)
@@ -57,7 +58,14 @@ def main():
                 if update.message.reply_to_message is None or update.message.reply_to_message.forum_topic_created.name not in allowed_topics:
                     await context.bot.delete_message(chat_id=BMP_CHAT_ID, message_id=update.message.message_id)
         else:
+            chat = await context.bot.get_chat(BMP_CHAT_ID)
             user_id = update.message.from_user.id
+            try:
+                await chat.get_member(user_id)
+            except Exception:
+                await context.bot.send_message(chat_id=update.message.chat_id, text='Ви не є активістом ГО "Батько МАЄ ПРАВО"', parse_mode='Markdown')
+                return
+
             if user_id not in user_ids:
                 user_ids.add(user_id)
                 users.append({
@@ -83,7 +91,8 @@ def main():
         is_night_time = False
         BOT_HIMSELF = 1
         registered_users_count = len(users) + BOT_HIMSELF
-        users_count = await context.bot.get_chat(BMP_CHAT_ID).get_member_count()
+        chat = await context.bot.get_chat(BMP_CHAT_ID)
+        users_count = await chat.get_member_count()
         await context.bot.send_message(chat_id=BMP_CHAT_ID, text=f'Батьки, режим тиші закінчився\nДля того покращити роботу бота, необхідно, щоб кожен активіст написав йому хоча б раз особисте повідомлення. Будь ласка зробіть це. На разі це зробило лише {registered_users_count} активістів із {users_count}.\nДякую за розуміння', parse_mode='Markdown')
         app.job_queue.run_once(endNightTime, get_next_time(NIGHT_TIME_END_HOUR))
 
@@ -109,4 +118,4 @@ def get_next_time(hour: int) -> datetime:
     return next_time
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
