@@ -81,7 +81,8 @@ def main():
     async def endNightTime(context: ContextTypes.DEFAULT_TYPE) -> None:
         global is_night_time
         is_night_time = False
-        registered_users_count = len(users)
+        BOT_HIMSELF = 1
+        registered_users_count = len(users) + BOT_HIMSELF
         users_count = await context.bot.get_chat(BMP_CHAT_ID).get_member_count()
         await context.bot.send_message(chat_id=BMP_CHAT_ID, text=f'Батьки, режим тиші закінчився\nДля того покращити роботу бота, необхідно, щоб кожен активіст написав йому хоча б раз особисте повідомлення. Будь ласка зробіть це. На разі це зробило лише {registered_users_count} активістів із {users_count}.\nДякую за розуміння', parse_mode='Markdown')
         app.job_queue.run_once(endNightTime, get_next_time(NIGHT_TIME_END_HOUR))
