@@ -21,7 +21,7 @@ def handle_unhandled_exceptions(exc_type, exc_value, exc_traceback):
 
     logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
 
-def main():
+async def main():
     global logger
     logger = logging.getLogger('my_logger')
     logger.setLevel(logging.DEBUG)
@@ -100,7 +100,13 @@ def main():
 
     app.job_queue.run_once(startNightTime, get_next_time(NIGHT_TIME_START_HOUR))
     app.job_queue.run_once(endNightTime, get_next_time(NIGHT_TIME_END_HOUR))
-    app.run_polling()
+
+    def run_polling_with_new_event_loop():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        app.run_polling()
+
+    await asyncio.to_thread(run_polling_with_new_event_loop)
 
 def get_env(key: str) -> str:
     value = os.getenv(key)
@@ -117,4 +123,4 @@ def get_next_time(hour: int) -> datetime:
     return next_time
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
