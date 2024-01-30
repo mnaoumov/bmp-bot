@@ -1,7 +1,6 @@
+import asyncio
 from flask import Flask, request, abort
 import subprocess
-import hmac
-import hashlib
 import logging
 import os
 import sys
@@ -44,7 +43,7 @@ def main():
             if request_secret != WEBHOOK_SECRET:
                 abort(403)
 
-            subprocess.run(['sh', './reinstall.sh'])
+            asyncio.create_task(asyncio.create_subprocess_exec(['sh', './reinstall.sh']))
             return '', 200
         else:
             return '', 400
