@@ -236,7 +236,7 @@ async def _end_night_time(context: ContextTypes.DEFAULT_TYPE) -> None:
 def _run_polling_with_new_event_loop():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    common.app.run_polling()
+    loop.run_until_complete(common.app.run_polling())
 
 
 if __name__ == "__main__":
