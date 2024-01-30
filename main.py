@@ -1,5 +1,5 @@
 import asyncio
-from telegram import Update
+from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler
 import logging
 from dotenv import load_dotenv
@@ -46,6 +46,20 @@ async def main():
     else:
         users = []
 
+    bot = Bot(token=BOT_TOKEN)
+    chat = await bot.get_chat(BMP_CHAT_ID)
+
+    filtered_users = []
+
+    for user in users:
+        member = await chat.get_member(user['id'])
+        if member.status != 'left':
+            filtered_users.append(user)
+
+    if (len(filtered_users) != len(users)):
+        users = filtered_users
+        save_users()
+
     user_ids = set(user['id'] for user in users)
     now_in_kyiv = datetime.now(kyiv_timezone)
     is_night_time = now_in_kyiv.hour >= NIGHT_TIME_START_HOUR or now_in_kyiv.hour < NIGHT_TIME_END_HOUR
@@ -73,11 +87,14 @@ async def main():
                     'first_name': update.message.from_user.first_name,
                     'last_name': update.message.from_user.last_name
                 })
-                with open(file='users.json', mode='w', encoding='utf8') as file:
-                    json.dump(users, file, ensure_ascii=False, indent=2)
+                save_users()
                 await context.bot.send_message(chat_id=update.message.chat_id, text='Дякую за реєстрацію')
             else:
                 await context.bot.send_message(chat_id=update.message.chat_id, text=f'Я поки не вмію виконувати команди. Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику [Михайлу](tg://user?id={DEVELOPER_CHAT_ID})', parse_mode='Markdown')
+
+    def save_users() -> None:
+        with open(file='users.json', mode='w', encoding='utf8') as file:
+            json.dump(users, file, ensure_ascii=False, indent=2)
 
     async def startNightTime(context: ContextTypes.DEFAULT_TYPE) -> None:
         global is_night_time
