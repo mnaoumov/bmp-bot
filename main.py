@@ -59,9 +59,9 @@ def main():
         else:
             chat = await context.bot.get_chat(BMP_CHAT_ID)
             user_id = update.message.from_user.id
-            try:
-                await chat.get_member(user_id)
-            except Exception:
+            user = await chat.get_member(user_id)
+
+            if user.status == 'left':
                 await context.bot.send_message(chat_id=update.message.chat_id, text='Ви не є активістом ГО "Батько МАЄ ПРАВО"', parse_mode='Markdown')
                 return
 
