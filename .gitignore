@@ -16,3 +16,5 @@ build/
 /venv/
 /!log.txt
 /users.json
+
+/!log-webhook.txt
