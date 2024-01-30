@@ -13,6 +13,7 @@ from dateutil.tz import gettz
 NIGHT_TIME_START_HOUR = 22
 NIGHT_TIME_END_HOUR = 9
 logger: logging.Logger
+is_night_time: bool
 
 def handle_unhandled_exceptions(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
