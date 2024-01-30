@@ -21,8 +21,7 @@ def handle_unhandled_exceptions(exc_type, exc_value, exc_traceback):
 
     logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
 
-
-async def main():
+def main():
     global logger
     logger = logging.getLogger('my_logger')
     logger.setLevel(logging.DEBUG)
@@ -118,4 +117,4 @@ def get_next_time(hour: int) -> datetime:
     return next_time
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
