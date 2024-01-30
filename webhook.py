@@ -7,11 +7,13 @@ import sys
 from dotenv import load_dotenv
 from threading import Thread
 
+
 def get_env(key: str) -> str:
     value = os.getenv(key)
-    if (not value):
-        raise Exception(f'Environment variable {key} is not set')
+    if not value:
+        raise Exception(f"Environment variable {key} is not set")
     return value
+
 
 def handle_unhandled_exceptions(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -23,11 +25,13 @@ def handle_unhandled_exceptions(exc_type, exc_value, exc_traceback):
 
 def main():
     global logger
-    logger = logging.getLogger('my_logger')
+    logger = logging.getLogger("my_logger")
     logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(filename='!log-webhook.txt', encoding='utf-8')
+    handler = logging.FileHandler(filename="!log-webhook.txt", encoding="utf-8")
 
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -35,21 +39,22 @@ def main():
 
     app = Flask(__name__)
     load_dotenv()
-    WEBHOOK_SECRET = get_env('WEBHOOK_SECRET')
+    WEBHOOK_SECRET = get_env("WEBHOOK_SECRET")
 
-    @app.route('/webhook', methods=['POST'])
+    @app.route("/webhook", methods=["POST"])
     def webhook():
-        if request.method == 'POST':
-            request_secret = request.headers.get('X-Webhook-Secret')
+        if request.method == "POST":
+            request_secret = request.headers.get("X-Webhook-Secret")
             if request_secret != WEBHOOK_SECRET:
                 abort(403)
 
             Thread(target=run_in_new_loop, args=(runReinstall,)).start()
-            return '', 200
+            return "", 200
         else:
-            return '', 400
+            return "", 400
 
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host="0.0.0.0", port=5000)
+
 
 def run_in_new_loop(coro):
     loop = asyncio.new_event_loop()
@@ -57,9 +62,11 @@ def run_in_new_loop(coro):
     loop.run_until_complete(coro())
     loop.close()
 
+
 async def runReinstall():
     await asyncio.sleep(1)
-    subprocess.run(['sh', './reinstall.sh'])
+    subprocess.run(["sh", "./reinstall.sh"])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

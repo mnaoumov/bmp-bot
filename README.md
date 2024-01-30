@@ -2,4 +2,4 @@
 
 ## License
 
- © [Michael Naumov](https://github.com/mnaoumov/)
+© [Michael Naumov](https://github.com/mnaoumov/)
