@@ -1,6 +1,6 @@
 import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler
+from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler
 import logging
 from dotenv import load_dotenv
 from datetime import datetime
@@ -14,6 +14,13 @@ NIGHT_TIME_START_HOUR = 22
 NIGHT_TIME_END_HOUR = 9
 logger: logging.Logger
 is_night_time: bool
+BOT_TOKEN: str
+BMP_CHAT_ID: int
+DEVELOPER_CHAT_ID: int
+allowed_topics = set(['SOS', 'ВІЛЬНА ТЕМА'])
+user_ids: set[int]
+users: list[dict]
+app: Application
 
 def handle_unhandled_exceptions(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -35,11 +42,16 @@ def main():
     sys.excepthook = handle_unhandled_exceptions
 
     load_dotenv()
+    global BOT_TOKEN
     BOT_TOKEN = get_env('BOT_TOKEN')
+    global BMP_CHAT_ID
     BMP_CHAT_ID = int(get_env('BMP_CHAT_ID'))
+    global DEVELOPER_CHAT_ID
     DEVELOPER_CHAT_ID = int(get_env('DEVELOPER_CHAT_ID'))
 
     kyiv_timezone = gettz('Europe/Kiev')
+
+    global users
 
     if os.path.exists('users.json'):
         with open(file='users.json', mode='r', encoding='utf8') as file:
@@ -47,60 +59,14 @@ def main():
     else:
         users = []
 
+    global user_ids
     user_ids = set(user['id'] for user in users)
     now_in_kyiv = datetime.now(kyiv_timezone)
     global is_night_time
     is_night_time = now_in_kyiv.hour >= NIGHT_TIME_START_HOUR or now_in_kyiv.hour < NIGHT_TIME_END_HOUR
     logger.debug("Init: is_night_time = %s", is_night_time)
-    allowed_topics = set(['SOS', 'ВІЛЬНА ТЕМА'])
 
-    async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if update.message.chat_id == BMP_CHAT_ID:
-            logger.debug("message: is_night_time = %s", is_night_time)
-            if is_night_time:
-                if update.message.reply_to_message is None or update.message.reply_to_message.forum_topic_created.name not in allowed_topics:
-                    await context.bot.delete_message(chat_id=BMP_CHAT_ID, message_id=update.message.message_id)
-        else:
-            chat = await context.bot.get_chat(BMP_CHAT_ID)
-            user_id = update.message.from_user.id
-            user = await chat.get_member(user_id)
-
-            if user.status == 'left':
-                await context.bot.send_message(chat_id=update.message.chat_id, text='Ви не є активістом ГО "Батько МАЄ ПРАВО"', parse_mode='Markdown')
-                return
-
-            if user_id not in user_ids:
-                user_ids.add(user_id)
-                users.append({
-                    'id': user_id,
-                    'username': update.message.from_user.username,
-                    'first_name': update.message.from_user.first_name,
-                    'last_name': update.message.from_user.last_name
-                })
-                with open(file='users.json', mode='w', encoding='utf8') as file:
-                    json.dump(users, file, ensure_ascii=False, indent=2)
-                await context.bot.send_message(chat_id=update.message.chat_id, text='Дякую за реєстрацію')
-            else:
-                await context.bot.send_message(chat_id=update.message.chat_id, text=f'Я поки не вмію виконувати команди. Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику [Михайлу](tg://user?id={DEVELOPER_CHAT_ID})', parse_mode='Markdown')
-
-    async def startNightTime(context: ContextTypes.DEFAULT_TYPE) -> None:
-        global is_night_time
-        is_night_time = True
-        logger.debug("startNightTime: is_night_time = True")
-        await context.bot.send_message(chat_id=BMP_CHAT_ID, text='Батьки, оголошується режим тиші з 22:00 до 9:00. Всі повідомлення у цей час будуть автоматично видалятися.\nУ топіках [SOS](https://t.me/c/1290587927/113812) і [ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831) можна писати без часових обмежень', parse_mode='Markdown')
-        app.job_queue.run_once(startNightTime, get_next_time(NIGHT_TIME_START_HOUR))
-    
-    async def endNightTime(context: ContextTypes.DEFAULT_TYPE) -> None:
-        global is_night_time
-        is_night_time = False
-        logger.debug("endNightTime: is_night_time = False")
-        BOT_HIMSELF = 1
-        registered_users_count = len(users) + BOT_HIMSELF
-        chat = await context.bot.get_chat(BMP_CHAT_ID)
-        users_count = await chat.get_member_count()
-        await context.bot.send_message(chat_id=BMP_CHAT_ID, text=f'Батьки, режим тиші закінчився\nДля того покращити роботу бота, необхідно, щоб кожен активіст написав йому хоча б раз особисте повідомлення. Будь ласка зробіть це. На разі це зробило лише {registered_users_count} активістів із {users_count}.\nДякую за розуміння', parse_mode='Markdown')
-        app.job_queue.run_once(endNightTime, get_next_time(NIGHT_TIME_END_HOUR))
-
+    global app
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(MessageHandler(None, message))
 
@@ -121,6 +87,53 @@ def get_next_time(hour: int) -> datetime:
     if next_time <= now_in_kyiv:
         next_time += relativedelta(days=1)
     return next_time
+
+async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.message.chat_id == BMP_CHAT_ID:
+        logger.debug("message: is_night_time = %s", is_night_time)
+        if is_night_time:
+            if update.message.reply_to_message is None or update.message.reply_to_message.forum_topic_created.name not in allowed_topics:
+                await context.bot.delete_message(chat_id=BMP_CHAT_ID, message_id=update.message.message_id)
+    else:
+        chat = await context.bot.get_chat(BMP_CHAT_ID)
+        user_id = update.message.from_user.id
+        user = await chat.get_member(user_id)
+
+        if user.status == 'left':
+            await context.bot.send_message(chat_id=update.message.chat_id, text='Ви не є активістом ГО "Батько МАЄ ПРАВО"', parse_mode='Markdown')
+            return
+
+        if user_id not in user_ids:
+            user_ids.add(user_id)
+            users.append({
+                'id': user_id,
+                'username': update.message.from_user.username,
+                'first_name': update.message.from_user.first_name,
+                'last_name': update.message.from_user.last_name
+            })
+            with open(file='users.json', mode='w', encoding='utf8') as file:
+                json.dump(users, file, ensure_ascii=False, indent=2)
+            await context.bot.send_message(chat_id=update.message.chat_id, text='Дякую за реєстрацію')
+        else:
+            await context.bot.send_message(chat_id=update.message.chat_id, text=f'Я поки не вмію виконувати команди. Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику [Михайлу](tg://user?id={DEVELOPER_CHAT_ID})', parse_mode='Markdown')
+
+async def startNightTime(context: ContextTypes.DEFAULT_TYPE) -> None:
+    global is_night_time
+    is_night_time = True
+    logger.debug("startNightTime: is_night_time = True")
+    await context.bot.send_message(chat_id=BMP_CHAT_ID, text='Батьки, оголошується режим тиші з 22:00 до 9:00. Всі повідомлення у цей час будуть автоматично видалятися.\nУ топіках [SOS](https://t.me/c/1290587927/113812) і [ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831) можна писати без часових обмежень', parse_mode='Markdown')
+    app.job_queue.run_once(startNightTime, get_next_time(NIGHT_TIME_START_HOUR))
+
+async def endNightTime(context: ContextTypes.DEFAULT_TYPE) -> None:
+    global is_night_time
+    is_night_time = False
+    logger.debug("endNightTime: is_night_time = False")
+    BOT_HIMSELF = 1
+    registered_users_count = len(users) + BOT_HIMSELF
+    chat = await context.bot.get_chat(BMP_CHAT_ID)
+    users_count = await chat.get_member_count()
+    await context.bot.send_message(chat_id=BMP_CHAT_ID, text=f'Батьки, режим тиші закінчився\nДля того покращити роботу бота, необхідно, щоб кожен активіст написав йому хоча б раз особисте повідомлення. Будь ласка зробіть це. На разі це зробило лише {registered_users_count} активістів із {users_count}.\nДякую за розуміння', parse_mode='Markdown')
+    app.job_queue.run_once(endNightTime, get_next_time(NIGHT_TIME_END_HOUR))
 
 if __name__ == '__main__':
     main()
