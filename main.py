@@ -31,6 +31,14 @@ class BmpBot:
         self.logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     def main(self):
+        self.app = ApplicationBuilder().token(self.BOT_TOKEN).build()
+        self.app.job_queue.run_once(self._initialize, when=0)
+        self.app.add_handler(MessageHandler(None, self.message))
+        self.app.job_queue.run_once(self.startNightTime, self.get_next_time(self.NIGHT_TIME_START_HOUR))
+        self.app.job_queue.run_once(self.endNightTime, self.get_next_time(self.NIGHT_TIME_END_HOUR))
+        self.app.run_polling()
+
+    async def _initialize(self, _: ContextTypes.DEFAULT_TYPE) -> None:
         self.logger = logging.getLogger('my_logger')
         self.logger.setLevel(logging.DEBUG)
         handler = logging.FileHandler(filename='!log.txt', encoding='utf-8')
@@ -58,13 +66,6 @@ class BmpBot:
         now_in_kyiv = datetime.now(kyiv_timezone)
         self.is_night_time = now_in_kyiv.hour >= self.NIGHT_TIME_START_HOUR or now_in_kyiv.hour < self.NIGHT_TIME_END_HOUR
         self.logger.debug("Init: is_night_time = %s", self.is_night_time)
-
-        self.app = ApplicationBuilder().token(self.BOT_TOKEN).build()
-        self.app.add_handler(MessageHandler(None, self.message))
-
-        self.app.job_queue.run_once(self.startNightTime, self.get_next_time(self.NIGHT_TIME_START_HOUR))
-        self.app.job_queue.run_once(self.endNightTime, self.get_next_time(self.NIGHT_TIME_END_HOUR))
-        self.app.run_polling()
 
     def get_env(self, key: str) -> str:
         value = os.getenv(key)
