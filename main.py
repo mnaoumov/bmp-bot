@@ -23,12 +23,6 @@ class BmpBot:
     users: list[dict]
     app: Application
 
-    def handle_unhandled_exceptions(self, exc_type, exc_value, exc_traceback):
-        if issubclass(exc_type, KeyboardInterrupt):
-            sys.__excepthook__(exc_type, exc_value, exc_traceback)
-            return
-
-        self.logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     def main(self):
         self.app = ApplicationBuilder().token(self.BOT_TOKEN).build()
@@ -67,19 +61,20 @@ class BmpBot:
         self.is_night_time = now_in_kyiv.hour >= self.NIGHT_TIME_START_HOUR or now_in_kyiv.hour < self.NIGHT_TIME_END_HOUR
         self.logger.debug("Init: is_night_time = %s", self.is_night_time)
 
+
+    def handle_unhandled_exceptions(self, exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        self.logger.error("Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+
     def get_env(self, key: str) -> str:
         value = os.getenv(key)
         if (not value):
             raise Exception(f'Environment variable {key} is not set')
         return value
-
-    def get_next_time(self, hour: int) -> datetime:
-        kyiv_timezone = gettz('Europe/Kiev')
-        now_in_kyiv = datetime.now(kyiv_timezone)
-        next_time = now_in_kyiv.replace(hour=hour, minute=0, second=0, microsecond=0)
-        if next_time <= now_in_kyiv:
-            next_time += relativedelta(days=1)
-        return next_time
 
     async def message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.message.chat_id == self.BMP_CHAT_ID:
@@ -115,6 +110,14 @@ class BmpBot:
         self.logger.debug("startNightTime: is_night_time = True")
         await context.bot.send_message(chat_id=self.BMP_CHAT_ID, text='Батьки, оголошується режим тиші з 22:00 до 9:00. Всі повідомлення у цей час будуть автоматично видалятися.\nУ топіках [SOS](https://t.me/c/1290587927/113812) і [ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831) можна писати без часових обмежень', parse_mode='Markdown')
         self.app.job_queue.run_once(self.startNightTime, self.get_next_time(self.NIGHT_TIME_START_HOUR))
+
+    def get_next_time(self, hour: int) -> datetime:
+        kyiv_timezone = gettz('Europe/Kiev')
+        now_in_kyiv = datetime.now(kyiv_timezone)
+        next_time = now_in_kyiv.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if next_time <= now_in_kyiv:
+            next_time += relativedelta(days=1)
+        return next_time
 
     async def endNightTime(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = False
