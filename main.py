@@ -1,4 +1,3 @@
-import asyncio
 from telegram import Update
 from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler
 import logging
