@@ -49,6 +49,7 @@ def main():
 
     user_ids = set(user['id'] for user in users)
     now_in_kyiv = datetime.now(kyiv_timezone)
+    global is_night_time
     is_night_time = now_in_kyiv.hour >= NIGHT_TIME_START_HOUR or now_in_kyiv.hour < NIGHT_TIME_END_HOUR
     logger.debug("Init: is_night_time = %s", is_night_time)
     allowed_topics = set(['SOS', 'ВІЛЬНА ТЕМА'])
