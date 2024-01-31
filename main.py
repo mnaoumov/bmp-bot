@@ -83,7 +83,7 @@ class BmpBot:
 
     async def message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.message.chat_id == self.BMP_CHAT_ID:
-            self.logger.debug("message: is_night_time = %s", is_night_time)
+            self.logger.debug("message: is_night_time = %s", self.is_night_time)
             if self.is_night_time:
                 if update.message.reply_to_message is None or update.message.reply_to_message.forum_topic_created.name not in self.allowed_topics:
                     await context.bot.delete_message(chat_id=self.BMP_CHAT_ID, message_id=update.message.message_id)
@@ -108,7 +108,7 @@ class BmpBot:
                     json.dump(self.users, file, ensure_ascii=False, indent=2)
                 await context.bot.send_message(chat_id=update.message.chat_id, text='Дякую за реєстрацію')
             else:
-                await context.bot.send_message(chat_id=update.message.chat_id, text=f'Я поки не вмію виконувати команди. Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику [Михайлу](tg://user?id={DEVELOPER_CHAT_ID})', parse_mode='Markdown')
+                await context.bot.send_message(chat_id=update.message.chat_id, text=f'Я поки не вмію виконувати команди. Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику [Михайлу](tg://user?id={self.DEVELOPER_CHAT_ID})', parse_mode='Markdown')
 
     async def startNightTime(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = True
