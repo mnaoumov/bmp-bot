@@ -50,10 +50,12 @@ def main():
     user_ids = set(user['id'] for user in users)
     now_in_kyiv = datetime.now(kyiv_timezone)
     is_night_time = now_in_kyiv.hour >= NIGHT_TIME_START_HOUR or now_in_kyiv.hour < NIGHT_TIME_END_HOUR
+    logger.debug("Init: is_night_time = %s", is_night_time)
     allowed_topics = set(['SOS', 'ВІЛЬНА ТЕМА'])
 
     async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.message.chat_id == BMP_CHAT_ID:
+            logger.debug("message: is_night_time = %s", is_night_time)
             if is_night_time:
                 if update.message.reply_to_message is None or update.message.reply_to_message.forum_topic_created.name not in allowed_topics:
                     await context.bot.delete_message(chat_id=BMP_CHAT_ID, message_id=update.message.message_id)
@@ -83,12 +85,14 @@ def main():
     async def startNightTime(context: ContextTypes.DEFAULT_TYPE) -> None:
         global is_night_time
         is_night_time = True
+        logger.debug("startNightTime: is_night_time = True")
         await context.bot.send_message(chat_id=BMP_CHAT_ID, text='Батьки, оголошується режим тиші з 22:00 до 9:00. Всі повідомлення у цей час будуть автоматично видалятися.\nУ топіках [SOS](https://t.me/c/1290587927/113812) і [ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831) можна писати без часових обмежень', parse_mode='Markdown')
         app.job_queue.run_once(startNightTime, get_next_time(NIGHT_TIME_START_HOUR))
     
     async def endNightTime(context: ContextTypes.DEFAULT_TYPE) -> None:
         global is_night_time
         is_night_time = False
+        logger.debug("endNightTime: is_night_time = False")
         BOT_HIMSELF = 1
         registered_users_count = len(users) + BOT_HIMSELF
         chat = await context.bot.get_chat(BMP_CHAT_ID)
