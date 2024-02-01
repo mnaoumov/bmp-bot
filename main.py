@@ -46,7 +46,7 @@ class BmpBot:
         self.app = ApplicationBuilder().token(self.bot_token).build()
         self.app.add_error_handler(self._handle_error)
         self.app.job_queue.run_once(self._initialize, when=0)
-        self.app.add_handler(MessageHandler(None, self._message))
+        self.app.add_handler(MessageHandler(None, self._handle_message))
         self.app.job_queue.run_once(
             self._start_night_time, self._get_next_time(self.NIGHT_TIME_START_HOUR)
         )
@@ -119,7 +119,7 @@ class BmpBot:
             raise EnvironmentError(f"Environment variable {key} is not set")
         return value
 
-    async def _message(
+    async def _handle_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
         if update.message.chat_id == self.bmp_chat_id:
