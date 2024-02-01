@@ -31,8 +31,8 @@ class BmpBot:
     user_ids: set[int]
     users: list[dict]
     app: Application
-    SOS_LINK = "[SOS](https://t.me/c/1290587927/113812)"
-    FREE_TOPIC_LINK = "[ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831)"
+    SOS_LINK: str = "[SOS](https://t.me/c/1290587927/113812)"
+    FREE_TOPIC_LINK: str = "[ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831)"
 
     def main(self):
         """
