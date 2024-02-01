@@ -27,7 +27,7 @@ class BmpBot:
     bot_token: str
     bmp_chat_id: int
     developer_chat_id: int
-    allowed_topics = set(["SOS", "ВІЛЬНА ТЕМА"])
+    ALLOWED_TOPICS = set(["SOS", "ВІЛЬНА ТЕМА"])
     user_ids: set[int]
     users: list[dict]
     app: Application
@@ -108,7 +108,7 @@ class BmpBot:
                 if (
                     update.message.reply_to_message is None
                     or update.message.reply_to_message.forum_topic_created.name
-                    not in self.allowed_topics
+                    not in self.ALLOWED_TOPICS
                 ):
                     await context.bot.delete_message(
                         chat_id=self.bmp_chat_id, message_id=update.message.message_id
