@@ -263,7 +263,7 @@ class BmpBot:
             next_time += relativedelta(days=1)
         return next_time
 
-    def _schedule_end_night_time(self):
+    def _schedule_end_night_time(self) -> None:
         now_in_kyiv = self._now_in_kyiv()
         night_time_end_hour = self._night_time_end_hour(now_in_kyiv)
         next_time = self._get_next_time(night_time_end_hour)
