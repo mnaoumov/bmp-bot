@@ -16,6 +16,28 @@ from telegram import Update
 from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler
 
 
+class User:
+    """
+    Користувач
+    """
+
+    def __init__(
+        self,
+        raw_dict: dict = None,
+        user_id: int = None,
+        username: str = None,
+        first_name: str = None,
+        last_name: str = None,
+    ) -> None:
+        if raw_dict is not None:
+            self.__dict__ = raw_dict
+        else:
+            self.id = user_id
+            self.username = username
+            self.first_name = first_name
+            self.last_name = last_name
+
+
 class BmpBot:
     """
     Бот для чату ГО "Батько МАЄ ПРАВО"
@@ -31,7 +53,7 @@ class BmpBot:
     developer_chat_id: int
     ALLOWED_TOPICS = set(["SOS", "ВІЛЬНА ТЕМА"])
     user_ids: set[int]
-    users: list[dict]
+    users: list[User]
     app: Application
     SOS_LINK: str = "[SOS](https://t.me/c/1290587927/113812)"
     FREE_TOPIC_LINK: str = "[ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831)"
@@ -86,11 +108,11 @@ class BmpBot:
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
             ) as file:
-                self.users = json.load(file)
+                self.users = json.load(file).map(User)
         else:
             self.users = []
 
-        self.user_ids = set(user["id"] for user in self.users)
+        self.user_ids = set(user.id for user in self.users)
         now_in_kyiv = self._now_in_kyiv()
         self.is_night_time = (
             now_in_kyiv.hour >= self.NIGHT_TIME_START_HOUR
@@ -156,12 +178,12 @@ class BmpBot:
             if user_id not in self.user_ids:
                 self.user_ids.add(user_id)
                 self.users.append(
-                    {
-                        "id": user_id,
-                        "username": update.message.from_user.username,
-                        "first_name": update.message.from_user.first_name,
-                        "last_name": update.message.from_user.last_name,
-                    }
+                    User(
+                        user_id=user_id,
+                        username=update.message.from_user.username,
+                        first_name=update.message.from_user.first_name,
+                        last_name=update.message.from_user.last_name,
+                    )
                 )
 
                 with open(
