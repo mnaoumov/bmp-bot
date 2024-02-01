@@ -47,12 +47,8 @@ class BmpBot:
         self.app.add_error_handler(self._handle_error)
         self.app.job_queue.run_once(self._initialize, when=0)
         self.app.add_handler(MessageHandler(None, self._handle_message))
-        self.app.job_queue.run_once(
-            self._start_night_time, self._get_next_time(self.NIGHT_TIME_START_HOUR)
-        )
-        self.app.job_queue.run_once(
-            self._end_night_time, self._get_next_time(self.NIGHT_TIME_END_HOUR)
-        )
+        self._schedule_start_night_time()
+        self._schedule_end_night_time()
         self.app.run_polling()
 
     async def _handle_error(
@@ -173,6 +169,11 @@ class BmpBot:
                     parse_mode="Markdown",
                 )
 
+    def _schedule_start_night_time(self) -> None:
+        self.app.job_queue.run_once(
+            self._start_night_time, self._get_next_time(self.NIGHT_TIME_START_HOUR)
+        )
+
     async def _start_night_time(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = True
         self.logger.debug("startNightTime: is_night_time = True")
@@ -183,9 +184,7 @@ class BmpBot:
 У топіках {self.SOS_LINK} і {self.FREE_TOPIC_LINK} можна писати без часових обмежень""",
             parse_mode="Markdown",
         )
-        self.app.job_queue.run_once(
-            self._start_night_time, self._get_next_time(self.NIGHT_TIME_START_HOUR)
-        )
+        self._schedule_start_night_time()
 
     def _get_next_time(self, hour: int) -> datetime:
         now_in_kyiv = self._now_in_kyiv()
@@ -193,6 +192,11 @@ class BmpBot:
         if next_time <= now_in_kyiv:
             next_time += relativedelta(days=1)
         return next_time
+
+    def _schedule_end_night_time(self):
+        self.app.job_queue.run_once(
+            self._end_night_time, self._get_next_time(self.NIGHT_TIME_END_HOUR)
+        )
 
     async def _end_night_time(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = False
@@ -208,9 +212,7 @@ class BmpBot:
 Дякую за розуміння""",
             parse_mode="Markdown",
         )
-        self.app.job_queue.run_once(
-            self._end_night_time, self._get_next_time(self.NIGHT_TIME_END_HOUR)
-        )
+        self._schedule_end_night_time()
 
 
 if __name__ == "__main__":
