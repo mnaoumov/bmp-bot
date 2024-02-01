@@ -195,9 +195,11 @@ class BmpBot:
             day_type = "вихідний"
         else:
             day_type = "робочий"
+
+        schedule_str = f"з {self.NIGHT_TIME_START_HOUR}:00 до {night_time_end_hour}:00"
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
-            text=f"""Батьки, оголошується режим тиші з 22:00 до {night_time_end_hour}:00 ({day_type} день).
+            text=f"""Батьки, оголошується режим тиші {schedule_str} ({day_type} день).
 Всі повідомлення у цей час будуть автоматично видалятися.
 У топіках {self.SOS_LINK} і {self.FREE_TOPIC_LINK} можна писати без часових обмежень""",
             parse_mode="Markdown",
