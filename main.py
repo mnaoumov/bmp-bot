@@ -37,7 +37,6 @@ class BmpBot:
     KYIV_TIMEZONE_NAME: str = "Europe/Kiev"
     kyiv_timezone: tzinfo
 
-
     def main(self):
         """
         Запускає бота
@@ -75,7 +74,9 @@ class BmpBot:
         self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
 
         if os.path.exists(self.USERS_JSON_FILE_NAME):
-            with open(file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8") as file:
+            with open(
+                file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
+            ) as file:
                 self.users = json.load(file)
         else:
             self.users = []
@@ -144,7 +145,9 @@ class BmpBot:
                     }
                 )
 
-                with open(file=self.USERS_JSON_FILE_NAME, mode="w", encoding="utf8") as file:
+                with open(
+                    file=self.USERS_JSON_FILE_NAME, mode="w", encoding="utf8"
+                ) as file:
                     json.dump(self.users, file, ensure_ascii=False, indent=2)
                 await context.bot.send_message(
                     chat_id=update.message.chat_id, text="Дякую за реєстрацію"
