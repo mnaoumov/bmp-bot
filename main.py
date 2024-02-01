@@ -99,7 +99,9 @@ class BmpBot:
             raise EnvironmentError(f"Environment variable {key} is not set")
         return value
 
-    async def _message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def _message(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         if update.message.chat_id == self.bmp_chat_id:
             self.logger.debug("message: is_night_time = %s", self.is_night_time)
             if self.is_night_time:
