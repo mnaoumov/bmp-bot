@@ -38,7 +38,7 @@ class BmpBot:
     KYIV_TIMEZONE_NAME: str = "Europe/Kiev"
     kyiv_timezone: tzinfo
 
-    def main(self):
+    def main(self) -> None:
         """
         Запускає бота
         """
@@ -101,7 +101,7 @@ class BmpBot:
         )
         self.logger.debug("Init: is_night_time = %s", self.is_night_time)
 
-    def _handle_unhandled_exceptions(self, exc_type, exc_value, exc_traceback):
+    def _handle_unhandled_exceptions(self, exc_type, exc_value, exc_traceback) -> None:
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
