@@ -90,7 +90,7 @@ class BmpBot:
     def get_env(self, key: str) -> str:
         value = os.getenv(key)
         if not value:
-            raise Exception(f"Environment variable {key} is not set")
+            raise EnvironmentError(f"Environment variable {key} is not set")
         return value
 
     async def message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
