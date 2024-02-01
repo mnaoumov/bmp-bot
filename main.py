@@ -117,7 +117,7 @@ class BmpBot:
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
             ) as file:
-                self.users = json.load(file).map(User)
+                self.users = list(map(User, json.load(file)))
         else:
             self.users = []
 
