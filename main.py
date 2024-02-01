@@ -33,6 +33,7 @@ class BmpBot:
     app: Application
     SOS_LINK: str = "[SOS](https://t.me/c/1290587927/113812)"
     FREE_TOPIC_LINK: str = "[ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831)"
+    USERS_JSON_FILE_NAME: str = "users.json"
 
     def main(self):
         """
@@ -70,8 +71,8 @@ class BmpBot:
 
         kyiv_timezone = gettz("Europe/Kiev")
 
-        if os.path.exists("users.json"):
-            with open(file="users.json", mode="r", encoding="utf8") as file:
+        if os.path.exists(self.USERS_JSON_FILE_NAME):
+            with open(file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8") as file:
                 self.users = json.load(file)
         else:
             self.users = []
@@ -136,7 +137,8 @@ class BmpBot:
                         "last_name": update.message.from_user.last_name,
                     }
                 )
-                with open(file="users.json", mode="w", encoding="utf8") as file:
+
+                with open(file=USERS_JSON_FILE_NAME, mode="w", encoding="utf8") as file:
                     json.dump(self.users, file, ensure_ascii=False, indent=2)
                 await context.bot.send_message(
                     chat_id=update.message.chat_id, text="Дякую за реєстрацію"
