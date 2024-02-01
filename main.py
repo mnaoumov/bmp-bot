@@ -33,6 +33,10 @@ class BmpBot:
     app: Application
 
     def main(self):
+        """
+        Запускає бота
+        """
+
         self.app = ApplicationBuilder().token(self.BOT_TOKEN).build()
         self.app.job_queue.run_once(self._initialize, when=0)
         self.app.add_handler(MessageHandler(None, self.message))
