@@ -66,25 +66,6 @@ class BmpBot:
         Запускає бота
         """
 
-        self.app = ApplicationBuilder().token(self.bot_token).build()
-        self.app.add_error_handler(self._handle_error)
-        self.app.job_queue.run_once(self._initialize, when=0)
-        self.app.add_handler(MessageHandler(None, self._handle_message))
-        self._schedule_start_night_time()
-        self._schedule_end_night_time()
-        self.app.run_polling()
-
-    async def _handle_error(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
-        exception_str = "".join(
-            traceback.format_exception(
-                type(context.error), context.error, context.error.__traceback__
-            )
-        )
-        self.logger.error('Update "%s" caused error "%s"', update, exception_str)
-
-    async def _initialize(self, _: ContextTypes.DEFAULT_TYPE) -> None:
         self.logger = logging.getLogger("my_logger")
         self.logger.setLevel(logging.DEBUG)
         handler = logging.FileHandler(filename="!log.txt", encoding="utf-8")
@@ -104,6 +85,25 @@ class BmpBot:
 
         self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
 
+        self.app = ApplicationBuilder().token(self.bot_token).build()
+        self.app.add_error_handler(self._handle_error)
+        self.app.job_queue.run_once(self._initialize, when=0)
+        self.app.add_handler(MessageHandler(None, self._handle_message))
+        self._schedule_start_night_time()
+        self._schedule_end_night_time()
+        self.app.run_polling()
+
+    async def _handle_error(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        exception_str = "".join(
+            traceback.format_exception(
+                type(context.error), context.error, context.error.__traceback__
+            )
+        )
+        self.logger.error('Update "%s" caused error "%s"', update, exception_str)
+
+    async def _initialize(self, _: ContextTypes.DEFAULT_TYPE) -> None:
         if os.path.exists(self.USERS_JSON_FILE_NAME):
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
