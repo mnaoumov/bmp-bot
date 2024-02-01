@@ -66,6 +66,20 @@ class BmpBot:
         Запускає бота
         """
 
+        self._setup_logger()
+        self._init_secrets()
+
+        self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
+
+        self.app = ApplicationBuilder().token(self.bot_token).build()
+        self.app.add_error_handler(self._handle_error)
+        self.app.job_queue.run_once(self._initialize, when=0)
+        self.app.add_handler(MessageHandler(None, self._handle_message))
+        self._schedule_start_night_time()
+        self._schedule_end_night_time()
+        self.app.run_polling()
+
+    def _setup_logger(self) -> None:
         self.logger = logging.getLogger("my_logger")
         self.logger.setLevel(logging.DEBUG)
         handler = logging.FileHandler(filename="!log.txt", encoding="utf-8")
@@ -78,20 +92,11 @@ class BmpBot:
 
         sys.excepthook = self._handle_unhandled_exceptions
 
+    def _init_secrets(self) -> None:
         load_dotenv()
         self.bot_token = self._get_env("BOT_TOKEN")
         self.bmp_chat_id = int(self._get_env("BMP_CHAT_ID"))
         self.developer_chat_id = int(self._get_env("DEVELOPER_CHAT_ID"))
-
-        self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
-
-        self.app = ApplicationBuilder().token(self.bot_token).build()
-        self.app.add_error_handler(self._handle_error)
-        self.app.job_queue.run_once(self._initialize, when=0)
-        self.app.add_handler(MessageHandler(None, self._handle_message))
-        self._schedule_start_night_time()
-        self._schedule_end_night_time()
-        self.app.run_polling()
 
     async def _handle_error(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
