@@ -15,6 +15,10 @@ from telegram import Update
 from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler
 
 class BmpBot:
+    """
+    Бот для чату ГО "Батько МАЄ ПРАВО"
+    """
+
     NIGHT_TIME_START_HOUR = 22
     NIGHT_TIME_END_HOUR = 9
     logger: logging.Logger
