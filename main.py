@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, tzinfo
 
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import gettz
@@ -34,6 +34,9 @@ class BmpBot:
     SOS_LINK: str = "[SOS](https://t.me/c/1290587927/113812)"
     FREE_TOPIC_LINK: str = "[ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831)"
     USERS_JSON_FILE_NAME: str = "users.json"
+    KYIV_TIMEZONE_NAME: str = "Europe/Kiev"
+    kyiv_timezone: tzinfo
+
 
     def main(self):
         """
@@ -69,7 +72,7 @@ class BmpBot:
         self.bmp_chat_id = int(self._get_env("BMP_CHAT_ID"))
         self.developer_chat_id = int(self._get_env("DEVELOPER_CHAT_ID"))
 
-        kyiv_timezone = gettz("Europe/Kiev")
+        self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
 
         if os.path.exists(self.USERS_JSON_FILE_NAME):
             with open(file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8") as file:
@@ -78,7 +81,7 @@ class BmpBot:
             self.users = []
 
         self.user_ids = set(user["id"] for user in self.users)
-        now_in_kyiv = datetime.now(kyiv_timezone)
+        now_in_kyiv = datetime.now(self.kyiv_timezone)
         self.is_night_time = (
             now_in_kyiv.hour >= self.NIGHT_TIME_START_HOUR
             or now_in_kyiv.hour < self.NIGHT_TIME_END_HOUR
@@ -167,8 +170,7 @@ class BmpBot:
         )
 
     def _get_next_time(self, hour: int) -> datetime:
-        kyiv_timezone = gettz("Europe/Kiev")
-        now_in_kyiv = datetime.now(kyiv_timezone)
+        now_in_kyiv = datetime.now(self.kyiv_timezone)
         next_time = now_in_kyiv.replace(hour=hour, minute=0, second=0, microsecond=0)
         if next_time <= now_in_kyiv:
             next_time += relativedelta(days=1)
