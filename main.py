@@ -144,7 +144,7 @@ class BmpBot:
                     }
                 )
 
-                with open(file=USERS_JSON_FILE_NAME, mode="w", encoding="utf8") as file:
+                with open(file=self.USERS_JSON_FILE_NAME, mode="w", encoding="utf8") as file:
                     json.dump(self.users, file, ensure_ascii=False, indent=2)
                 await context.bot.send_message(
                     chat_id=update.message.chat_id, text="Дякую за реєстрацію"
