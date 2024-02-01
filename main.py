@@ -22,7 +22,8 @@ class BmpBot:
     """
 
     NIGHT_TIME_START_HOUR = 22
-    NIGHT_TIME_END_HOUR = 9
+    NIGHT_TIME_END_HOUR_WEEKDAY = 8
+    NIGHT_TIME_END_HOUR_WEEKEND = 9
     logger: logging.Logger
     is_night_time: bool
     bot_token: str
@@ -93,7 +94,7 @@ class BmpBot:
         now_in_kyiv = self._now_in_kyiv()
         self.is_night_time = (
             now_in_kyiv.hour >= self.NIGHT_TIME_START_HOUR
-            or now_in_kyiv.hour < self.NIGHT_TIME_END_HOUR
+            or now_in_kyiv.hour < self._night_time_end_hour(now_in_kyiv)
         )
         self.logger.debug("Init: is_night_time = %s", self.is_night_time)
 
@@ -114,6 +115,16 @@ class BmpBot:
         if not value:
             raise EnvironmentError(f"Environment variable {key} is not set")
         return value
+
+    def _night_time_end_hour(self, date: datetime) -> int:
+        if self._is_weekend(date):
+            return self.NIGHT_TIME_END_HOUR_WEEKEND
+        return self.NIGHT_TIME_END_HOUR_WEEKDAY
+
+    def _is_weekend(self, date: datetime) -> bool:
+        saturday_day_index = 5
+        sunday_day_index = 6
+        return date.weekday() in [saturday_day_index, sunday_day_index]
 
     async def _handle_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -177,14 +188,25 @@ class BmpBot:
     async def _start_night_time(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = True
         self.logger.debug("startNightTime: is_night_time = True")
+        tomorrow_in_kyiv = self._tomorrow_in_kyiv()
+        night_time_end_hour = self._night_time_end_hour(tomorrow_in_kyiv)
+
+        if self._is_weekend(tomorrow_in_kyiv):
+            day_type = "вихідний"
+        else:
+            day_type = "робочий"
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
-            text="""Батьки, оголошується режим тиші з 22:00 до 9:00.
+            text=f"""Батьки, оголошується режим тиші з 22:00 до {night_time_end_hour}:00 ({day_type} день).
 Всі повідомлення у цей час будуть автоматично видалятися.
 У топіках {self.SOS_LINK} і {self.FREE_TOPIC_LINK} можна писати без часових обмежень""",
             parse_mode="Markdown",
         )
         self._schedule_start_night_time()
+
+    def _tomorrow_in_kyiv(self) -> datetime:
+        now_in_kyiv = self._now_in_kyiv()
+        return now_in_kyiv + relativedelta(days=1)
 
     def _get_next_time(self, hour: int) -> datetime:
         now_in_kyiv = self._now_in_kyiv()
@@ -194,9 +216,18 @@ class BmpBot:
         return next_time
 
     def _schedule_end_night_time(self):
-        self.app.job_queue.run_once(
-            self._end_night_time, self._get_next_time(self.NIGHT_TIME_END_HOUR)
-        )
+        now_in_kyiv = self._now_in_kyiv()
+        night_time_end_hour = self._night_time_end_hour(now_in_kyiv)
+        next_time = self._get_next_time(night_time_end_hour)
+
+        if next_time < now_in_kyiv:
+            tomorrow_in_kyiv = self._tomorrow_in_kyiv()
+            night_time_end_hour = self._night_time_end_hour(tomorrow_in_kyiv)
+            next_time = self._get_next_time(night_time_end_hour)
+            if next_time.day == now_in_kyiv.day:
+                next_time += relativedelta(days=1)
+
+        self.app.job_queue.run_once(self._end_night_time, next_time)
 
     async def _end_night_time(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = False
