@@ -90,6 +90,10 @@ class BmpBot:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        self.logger.addHandler(console_handler)
+
         sys.excepthook = self._handle_unhandled_exceptions
 
     def _init_secrets(self) -> None:
