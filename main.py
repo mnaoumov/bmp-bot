@@ -31,6 +31,8 @@ class BmpBot:
     user_ids: set[int]
     users: list[dict]
     app: Application
+    SOS_LINK = "[SOS](https://t.me/c/1290587927/113812)"
+    FREE_TOPIC_LINK = "[ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831)"
 
     def main(self):
         """
@@ -138,9 +140,11 @@ class BmpBot:
                     chat_id=update.message.chat_id, text="Дякую за реєстрацію"
                 )
             else:
+                developer_link = f"[Михайлу](tg://user?id={self.developer_chat_id})"
                 await context.bot.send_message(
                     chat_id=update.message.chat_id,
-                    text=f"Я поки не вмію виконувати команди. Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику [Михайлу](tg://user?id={self.developer_chat_id})",
+                    text=f"""Я поки не вмію виконувати команди.
+Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику {developer_link}""",
                     parse_mode="Markdown",
                 )
 
@@ -149,7 +153,9 @@ class BmpBot:
         self.logger.debug("startNightTime: is_night_time = True")
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
-            text="Батьки, оголошується режим тиші з 22:00 до 9:00. Всі повідомлення у цей час будуть автоматично видалятися.\nУ топіках [SOS](https://t.me/c/1290587927/113812) і [ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831) можна писати без часових обмежень",
+            text="""Батьки, оголошується режим тиші з 22:00 до 9:00.
+Всі повідомлення у цей час будуть автоматично видалятися.
+У топіках {self.SOS_LINK} і {self.FREE_TOPIC_LINK} можна писати без часових обмежень""",
             parse_mode="Markdown",
         )
         self.app.job_queue.run_once(
@@ -173,7 +179,9 @@ class BmpBot:
         users_count = await chat.get_member_count()
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
-            text=f"Батьки, режим тиші закінчився\nДля того покращити роботу бота, необхідно, щоб кожен активіст написав йому хоча б раз особисте повідомлення. Будь ласка зробіть це. На разі це зробило лише {registered_users_count} активістів із {users_count}.\nДякую за розуміння",
+            text=f"""Батьки, режим тиші закінчився
+Для того покращити роботу бота, необхідно, щоб кожен активіст написав йому хоча б раз особисте повідомлення. Будь ласка зробіть це. На разі це зробило лише {registered_users_count} активістів із {users_count}.
+Дякую за розуміння""",
             parse_mode="Markdown",
         )
         self.app.job_queue.run_once(
