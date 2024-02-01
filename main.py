@@ -81,7 +81,7 @@ class BmpBot:
             self.users = []
 
         self.user_ids = set(user["id"] for user in self.users)
-        now_in_kyiv = datetime.now(self.kyiv_timezone)
+        now_in_kyiv = self._now_in_kyiv()
         self.is_night_time = (
             now_in_kyiv.hour >= self.NIGHT_TIME_START_HOUR
             or now_in_kyiv.hour < self.NIGHT_TIME_END_HOUR
@@ -96,6 +96,9 @@ class BmpBot:
         self.logger.error(
             "Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback)
         )
+
+    def _now_in_kyiv(self) -> datetime:
+        return datetime.now(self.kyiv_timezone)
 
     def _get_env(self, key: str) -> str:
         value = os.getenv(key)
@@ -170,7 +173,7 @@ class BmpBot:
         )
 
     def _get_next_time(self, hour: int) -> datetime:
-        now_in_kyiv = datetime.now(self.kyiv_timezone)
+        now_in_kyiv = self._now_in_kyiv()
         next_time = now_in_kyiv.replace(hour=hour, minute=0, second=0, microsecond=0)
         if next_time <= now_in_kyiv:
             next_time += relativedelta(days=1)
