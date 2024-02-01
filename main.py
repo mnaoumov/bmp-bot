@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import traceback
 from datetime import datetime, tzinfo
 
 from dateutil.relativedelta import relativedelta
@@ -43,6 +44,7 @@ class BmpBot:
         """
 
         self.app = ApplicationBuilder().token(self.bot_token).build()
+        self.app.add_error_handler(self._handle_error)
         self.app.job_queue.run_once(self._initialize, when=0)
         self.app.add_handler(MessageHandler(None, self._message))
         self.app.job_queue.run_once(
@@ -52,6 +54,16 @@ class BmpBot:
             self._end_night_time, self._get_next_time(self.NIGHT_TIME_END_HOUR)
         )
         self.app.run_polling()
+
+    async def _handle_error(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        exception_str = "".join(
+            traceback.format_exception(
+                type(context.error), context.error, context.error.__traceback__
+            )
+        )
+        self.logger.error('Update "%s" caused error "%s"', update, exception_str)
 
     async def _initialize(self, _: ContextTypes.DEFAULT_TYPE) -> None:
         self.logger = logging.getLogger("my_logger")
