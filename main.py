@@ -160,25 +160,29 @@ class BmpBot:
     async def _handle_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        if update.message.chat_id == self.bmp_chat_id:
+        message = update.message or update.edited_message
+        if message is None:
+            self.logger.warning("Cannot handle update without message: %s", update)
+            return
+        if message.chat_id == self.bmp_chat_id:
             self.logger.debug("message: is_night_time = %s", self.is_night_time)
             if self.is_night_time:
                 if (
-                    update.message.reply_to_message is None
-                    or update.message.reply_to_message.forum_topic_created.name
+                    message.reply_to_message is None
+                    or message.reply_to_message.forum_topic_created.name
                     not in self.ALLOWED_TOPICS
                 ):
                     await context.bot.delete_message(
-                        chat_id=self.bmp_chat_id, message_id=update.message.message_id
+                        chat_id=self.bmp_chat_id, message_id=message.message_id
                     )
         else:
             chat = await context.bot.get_chat(self.bmp_chat_id)
-            user_id = update.message.from_user.id
+            user_id = message.from_user.id
             user = await chat.get_member(user_id)
 
             if user.status == "left":
                 await context.bot.send_message(
-                    chat_id=update.message.chat_id,
+                    chat_id=message.chat_id,
                     text='Ви не є активістом ГО "Батько МАЄ ПРАВО"',
                     parse_mode="Markdown",
                 )
@@ -189,9 +193,9 @@ class BmpBot:
                 self.users.append(
                     User(
                         user_id=user_id,
-                        username=update.message.from_user.username,
-                        first_name=update.message.from_user.first_name,
-                        last_name=update.message.from_user.last_name,
+                        username=message.from_user.username,
+                        first_name=message.from_user.first_name,
+                        last_name=message.from_user.last_name,
                     )
                 )
 
@@ -200,12 +204,12 @@ class BmpBot:
                 ) as file:
                     json.dump(self.users, file, ensure_ascii=False, indent=2)
                 await context.bot.send_message(
-                    chat_id=update.message.chat_id, text="Дякую за реєстрацію"
+                    chat_id=message.chat_id, text="Дякую за реєстрацію"
                 )
             else:
                 developer_link = f"[Михайлу](tg://user?id={self.developer_chat_id})"
                 await context.bot.send_message(
-                    chat_id=update.message.chat_id,
+                    chat_id=message.chat_id,
                     text=f"""Я поки не вмію виконувати команди.
 Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику {developer_link}""",
                     parse_mode="Markdown",
