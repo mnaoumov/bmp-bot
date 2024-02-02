@@ -2,6 +2,7 @@
 main.py
 """
 
+import json
 import logging
 import os
 import sys
@@ -11,7 +12,6 @@ from datetime import datetime, tzinfo
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import gettz
 from dotenv import load_dotenv
-import simplejson
 from telegram import Update
 from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler
 
@@ -23,17 +23,31 @@ class User:
 
     def __init__(
         self,
-        # pylint: disable=W0622
-        id: int = None,
+        raw_dict: dict = None,
+        user_id: int = None,
         username: str = None,
         first_name: str = None,
         last_name: str = None,
     ) -> None:
-        self.id = id
-        self.username = username
-        self.first_name = first_name
-        self.last_name = last_name
+        if raw_dict is not None:
+            self.__dict__ = raw_dict
+        else:
+            self.id = user_id
+            self.username = username
+            self.first_name = first_name
+            self.last_name = last_name
 
+    def to_dict(self) -> dict:
+        """
+        for JSON serialization
+        """
+
+        return {
+            "id": self.id,
+            "username": self.username,
+            "first_name": self.first_name,
+            "last_name": self.last_name
+        }
 
 class BmpBot:
     """
@@ -114,7 +128,7 @@ class BmpBot:
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
             ) as file:
-                self.users = [User(**d) for d in simplejson.load(file)]
+                self.users = list(map(User, json.load(file)))
         else:
             self.users = []
 
@@ -189,7 +203,7 @@ class BmpBot:
                 self.user_ids.add(user_id)
                 self.users.append(
                     User(
-                        id=user_id,
+                        user_id=user_id,
                         username=message.from_user.username,
                         first_name=message.from_user.first_name,
                         last_name=message.from_user.last_name,
@@ -199,7 +213,7 @@ class BmpBot:
                 with open(
                     file=self.USERS_JSON_FILE_NAME, mode="w", encoding="utf8"
                 ) as file:
-                    simplejson.dump(self.users, file, ensure_ascii=False, indent=2)
+                    json.dump(self.users, file, ensure_ascii=False, indent=2)
                 await context.bot.send_message(
                     chat_id=message.chat_id, text="Дякую за реєстрацію"
                 )
