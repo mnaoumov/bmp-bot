@@ -23,19 +23,16 @@ class User:
 
     def __init__(
         self,
-        raw_dict: dict = None,
-        user_id: int = None,
+        # pylint: disable=W0622
+        id: int = None,
         username: str = None,
         first_name: str = None,
         last_name: str = None,
     ) -> None:
-        if raw_dict is not None:
-            self.__dict__ = raw_dict
-        else:
-            self.id = user_id
-            self.username = username
-            self.first_name = first_name
-            self.last_name = last_name
+        self.id = id
+        self.username = username
+        self.first_name = first_name
+        self.last_name = last_name
 
     def to_dict(self) -> dict:
         """
@@ -128,7 +125,7 @@ class BmpBot:
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
             ) as file:
-                self.users = list(map(User, json.load(file)))
+                self.users = [User(**d) for d in json.load(file)]
         else:
             self.users = []
 
@@ -203,7 +200,7 @@ class BmpBot:
                 self.user_ids.add(user_id)
                 self.users.append(
                     User(
-                        user_id=user_id,
+                        id=user_id,
                         username=message.from_user.username,
                         first_name=message.from_user.first_name,
                         last_name=message.from_user.last_name,
@@ -213,7 +210,7 @@ class BmpBot:
                 with open(
                     file=self.USERS_JSON_FILE_NAME, mode="w", encoding="utf8"
                 ) as file:
-                    json.dump(self.users, file, ensure_ascii=False, indent=2)
+                    json.dump([user.to_dict() for user in self.users], file, ensure_ascii=False, indent=2)
                 await context.bot.send_message(
                     chat_id=message.chat_id, text="Дякую за реєстрацію"
                 )
