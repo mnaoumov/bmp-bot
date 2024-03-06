@@ -192,7 +192,7 @@ class BmpBot:
                         chat_id=self.bmp_chat_id, message_id=message.message_id
                     )
         else:
-            if user.status == "left":
+            if user.status == ChatMemberStatus.LEFT:
                 await context.bot.send_message(
                     chat_id=message.chat_id,
                     text='Ви не є активістом ГО "Батько МАЄ ПРАВО"',
