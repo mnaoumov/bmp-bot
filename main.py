@@ -60,7 +60,10 @@ class BmpBot:
     bot_token: str
     bmp_chat_id: int
     developer_chat_id: int
-    ALLOWED_TOPICS = set(["SOS", "ВІЛЬНА ТЕМА"])
+    ALLOWED_TOPIC_IDS = set([
+        113812, # SOS
+        113831 # ВІЛЬНА ТЕМА
+    ])
     user_ids: set[int]
     users: list[User]
     app: Application
@@ -184,9 +187,8 @@ class BmpBot:
 
             if self.is_night_time:
                 if (
-                    message.reply_to_message is None
-                    or message.reply_to_message.forum_topic_created.name
-                    not in self.ALLOWED_TOPICS
+                    message.message_thread_id is None
+                    or message.message_thread_id not in self.ALLOWED_TOPIC_IDS
                 ):
                     await context.bot.delete_message(
                         chat_id=self.bmp_chat_id, message_id=message.message_id
