@@ -13,6 +13,7 @@ from dateutil.relativedelta import relativedelta
 from dateutil.tz import gettz
 from dotenv import load_dotenv
 from telegram import Update
+from telegram.constants import ChatMemberStatus
 from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler
 
 
@@ -174,6 +175,13 @@ class BmpBot:
             return
         if message.chat_id == self.bmp_chat_id:
             self.logger.debug("message: is_night_time = %s", self.is_night_time)
+            chat = await context.bot.get_chat(self.bmp_chat_id)
+            user_id = message.from_user.id
+            user = await chat.get_member(user_id)
+            if user.status == ChatMemberStatus.ADMINISTRATOR:
+                self.logger.debug("message: is admin")
+                return
+
             if self.is_night_time:
                 if (
                     message.reply_to_message is None
@@ -184,10 +192,6 @@ class BmpBot:
                         chat_id=self.bmp_chat_id, message_id=message.message_id
                     )
         else:
-            chat = await context.bot.get_chat(self.bmp_chat_id)
-            user_id = message.from_user.id
-            user = await chat.get_member(user_id)
-
             if user.status == "left":
                 await context.bot.send_message(
                     chat_id=message.chat_id,
