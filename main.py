@@ -176,11 +176,13 @@ class BmpBot:
         if message is None:
             self.logger.warning("Cannot handle update without message: %s", update)
             return
+
+        chat = await context.bot.get_chat(self.bmp_chat_id)
+        user_id = message.from_user.id
+        user = await chat.get_member(user_id)
+
         if message.chat_id == self.bmp_chat_id:
             self.logger.debug("message: is_night_time = %s", self.is_night_time)
-            chat = await context.bot.get_chat(self.bmp_chat_id)
-            user_id = message.from_user.id
-            user = await chat.get_member(user_id)
             if user.status == ChatMemberStatus.ADMINISTRATOR or user.status == ChatMemberStatus.OWNER:
                 self.logger.debug("message: is admin")
                 return
