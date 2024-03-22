@@ -181,7 +181,7 @@ class BmpBot:
             chat = await context.bot.get_chat(self.bmp_chat_id)
             user_id = message.from_user.id
             user = await chat.get_member(user_id)
-            if user.status == ChatMemberStatus.ADMINISTRATOR:
+            if user.status == ChatMemberStatus.ADMINISTRATOR or user.status == ChatMemberStatus.OWNER:
                 self.logger.debug("message: is admin")
                 return
 
