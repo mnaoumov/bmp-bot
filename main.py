@@ -128,7 +128,9 @@ class BmpBot:
                 type(context.error), context.error, context.error.__traceback__
             )
         )
-        self.logger.error('Update "%s" caused error "%s"', update, exception_str)
+        error_message = f"update\n${update}\n\ncaused error\n{exception_str}"
+        self.logger.error(error_message)
+        await context.bot.send_message(self.developer_chat_id, error_message)
 
     async def _initialize(self, _: ContextTypes.DEFAULT_TYPE) -> None:
         if os.path.exists(self.USERS_JSON_FILE_NAME):
