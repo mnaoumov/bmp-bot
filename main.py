@@ -189,7 +189,10 @@ class BmpBot:
 
         if message.chat_id == self.bmp_chat_id:
             self.logger.debug("message: is_night_time = %s", self.is_night_time)
-            if user.status == ChatMemberStatus.ADMINISTRATOR or user.status == ChatMemberStatus.OWNER:
+            if (
+                user.status == ChatMemberStatus.ADMINISTRATOR
+                or user.status == ChatMemberStatus.OWNER
+            ):
                 self.logger.debug("message: is admin")
                 return
 
@@ -224,7 +227,12 @@ class BmpBot:
                 with open(
                     file=self.USERS_JSON_FILE_NAME, mode="w", encoding="utf8"
                 ) as file:
-                    json.dump([user.to_dict() for user in self.users], file, ensure_ascii=False, indent=2)
+                    json.dump(
+                        [user.to_dict() for user in self.users],
+                        file,
+                        ensure_ascii=False,
+                        indent=2,
+                    )
                 await context.bot.send_message(
                     chat_id=message.chat_id, text="Дякую за реєстрацію"
                 )
@@ -254,6 +262,7 @@ class BmpBot:
             day_type = "робочий"
 
         schedule_str = f"з {self.NIGHT_TIME_START_HOUR}:00 до {night_time_end_hour}:00"
+
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
             text=f"""Батьки, оголошується режим тиші {schedule_str} ({day_type} день).
