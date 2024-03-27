@@ -61,15 +61,12 @@ class BmpBot:
     bot_token: str
     bmp_chat_id: int
     developer_chat_id: int
-    ALLOWED_TOPIC_IDS = set([
-        113812, # SOS
-        113831 # ВІЛЬНА ТЕМА
-    ])
+    ALLOWED_TOPICS = {"SOS": 113812, "ВІЛЬНА ТЕМА": 113831, "БЛАГОДІЙНІ ВНЕСКИ": 113806}
+    allowed_topic_ids = set(ALLOWED_TOPICS.values())
+    allowed_topic_links_str: str
     user_ids: set[int]
     users: list[User]
     app: Application
-    SOS_LINK: str = "[SOS](https://t.me/c/1290587927/113812)"
-    FREE_TOPIC_LINK: str = "[ВІЛЬНА ТЕМА](https://t.me/c/1290587927/113831)"
     USERS_JSON_FILE_NAME: str = "users.json"
     KYIV_TIMEZONE_NAME: str = "Europe/Kiev"
     kyiv_timezone: tzinfo
@@ -81,6 +78,14 @@ class BmpBot:
 
         self._setup_logger()
         self._init_secrets()
+
+        short_bmp_chat_id = str(self.bmp_chat_id)[-10:]
+        self.allowed_topic_links_str = ", ".join(
+            [
+                f"[{topic_name}](https://t.me/c/${short_bmp_chat_id}/{topic_id})"
+                for topic_name, topic_id in self.ALLOWED_TOPICS.items()
+            ]
+        )
 
         self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
 
@@ -191,7 +196,7 @@ class BmpBot:
             if self.is_night_time:
                 if (
                     message.message_thread_id is None
-                    or message.message_thread_id not in self.ALLOWED_TOPIC_IDS
+                    or message.message_thread_id not in self.allowed_topic_ids
                 ):
                     await context.bot.delete_message(
                         chat_id=self.bmp_chat_id, message_id=message.message_id
@@ -253,7 +258,7 @@ class BmpBot:
             chat_id=self.bmp_chat_id,
             text=f"""Батьки, оголошується режим тиші {schedule_str} ({day_type} день).
 Всі повідомлення у цей час будуть автоматично видалятися.
-У топіках {self.SOS_LINK} і {self.FREE_TOPIC_LINK} можна писати без часових обмежень""",
+У топіках {self.allowed_topic_links_str} можна писати без часових обмежень""",
             parse_mode="Markdown",
         )
         self._schedule_start_night_time()
