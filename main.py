@@ -93,8 +93,16 @@ class BmpBot:
         self.app.add_error_handler(self._handle_error)
         self.app.job_queue.run_once(self._initialize, when=0)
         self.app.add_handler(MessageHandler(None, self._handle_message))
-        self._schedule_start_night_time()
-        self._schedule_end_night_time()
+
+        now_in_kyiv = self._now_in_kyiv()
+        next_hour = now_in_kyiv.replace(
+            minute=0, second=0, microsecond=0
+        ) + relativedelta(hours=1)
+        seconds_till_next_hour = (next_hour - now_in_kyiv).total_seconds()
+        self.app.job_queue.run_repeating(
+            self._run_hourly, interval=3600, first=seconds_till_next_hour
+        )
+
         self.app.run_polling()
 
     def _setup_logger(self) -> None:
@@ -177,6 +185,11 @@ class BmpBot:
         sunday_day_index = 6
         return date.weekday() in [saturday_day_index, sunday_day_index]
 
+    def _is_monday_or_friday(self, date: datetime) -> bool:
+        monday_day_index = 0
+        friday_day_index = 4
+        return date.weekday() in [monday_day_index, friday_day_index]
+
     async def _handle_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -247,11 +260,6 @@ class BmpBot:
                     parse_mode="Markdown",
                 )
 
-    def _schedule_start_night_time(self) -> None:
-        self.app.job_queue.run_once(
-            self._start_night_time, self._get_next_time(self.NIGHT_TIME_START_HOUR)
-        )
-
     async def _start_night_time(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = True
         self.logger.debug("startNightTime: is_night_time = True")
@@ -272,32 +280,10 @@ class BmpBot:
 У топіках {self.allowed_topic_links_str} можна писати без часових обмежень""",
             parse_mode="Markdown",
         )
-        self._schedule_start_night_time()
 
     def _tomorrow_in_kyiv(self) -> datetime:
         now_in_kyiv = self._now_in_kyiv()
         return now_in_kyiv + relativedelta(days=1)
-
-    def _get_next_time(self, hour: int) -> datetime:
-        now_in_kyiv = self._now_in_kyiv()
-        next_time = now_in_kyiv.replace(hour=hour, minute=0, second=0, microsecond=0)
-        if next_time <= now_in_kyiv:
-            next_time += relativedelta(days=1)
-        return next_time
-
-    def _schedule_end_night_time(self) -> None:
-        now_in_kyiv = self._now_in_kyiv()
-        night_time_end_hour = self._night_time_end_hour(now_in_kyiv)
-        next_time = self._get_next_time(night_time_end_hour)
-
-        if next_time < now_in_kyiv:
-            tomorrow_in_kyiv = self._tomorrow_in_kyiv()
-            night_time_end_hour = self._night_time_end_hour(tomorrow_in_kyiv)
-            next_time = self._get_next_time(night_time_end_hour)
-            if next_time.day == now_in_kyiv.day:
-                next_time += relativedelta(days=1)
-
-        self.app.job_queue.run_once(self._end_night_time, next_time)
 
     async def _end_night_time(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = False
@@ -306,14 +292,33 @@ class BmpBot:
         registered_users_count = len(self.users) + bot_himself
         chat = await context.bot.get_chat(self.bmp_chat_id)
         users_count = await chat.get_member_count()
+
+        message = f"""Батьки, режим тиші закінчився
+Для того покращити роботу бота, необхідно, щоб кожен активіст написав йому хоча б раз особисте повідомлення. Будь ласка зробіть це. На разі це зробило лише {registered_users_count} активістів із {users_count}.
+Дякую за розуміння"""
+
+        if self._is_monday_or_friday(self._now_in_kyiv()):
+            message = f"""{message}
+
+‼️НАГАДУЄМО ПРО ОБОВ’ЯЗКОВІСТЬ СПЛАТИ БЛАГОДІЙНИХ ВНЕСКІВ ЗГІДНО ПРАВИЛ ГРУПИ. НЕСПЛАТА ВНЕСКІВ ПРИЗВОДИТЬ ДО ВИДАЛЕННЯ З ГРУП ГО БАТЬКО МАЄ ПРАВО. 
+Правила сплати благодійних внесків за посиланням:
+https://t.me/c/1290587927/113806/191878 ‼️
+"""
+
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
-            text=f"""Батьки, режим тиші закінчився
-Для того покращити роботу бота, необхідно, щоб кожен активіст написав йому хоча б раз особисте повідомлення. Будь ласка зробіть це. На разі це зробило лише {registered_users_count} активістів із {users_count}.
-Дякую за розуміння""",
+            text=message,
             parse_mode="Markdown",
         )
-        self._schedule_end_night_time()
+
+    async def _run_hourly(self, context: ContextTypes.DEFAULT_TYPE) -> None:
+        now_in_kyiv = self._now_in_kyiv()
+        hour = now_in_kyiv.hour
+
+        if hour == self.NIGHT_TIME_START_HOUR:
+            await self._start_night_time(context)
+        elif hour == self._night_time_end_hour(now_in_kyiv):
+            await self._end_night_time(context)
 
 
 if __name__ == "__main__":
