@@ -193,7 +193,11 @@ class BmpBot:
     async def _handle_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        message = update.message or update.edited_message
+        message = update.message
+
+        if update.edited_message and update.edited_message.forward_date:
+            message = update.edited_message
+
         if message is None:
             self.logger.warning("Cannot handle update without message: %s", update)
             return
