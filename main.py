@@ -70,6 +70,7 @@ class BmpBot:
     USERS_JSON_FILE_NAME: str = "users.json"
     KYIV_TIMEZONE_NAME: str = "Europe/Kiev"
     kyiv_timezone: tzinfo
+    MANDATORY_REGISTRATION_DATE = datetime(2024, 6, 1)
 
     def main(self) -> None:
         """
@@ -215,14 +216,22 @@ class BmpBot:
                 self.logger.debug("message: is admin")
                 return
 
+            should_remove = False
+
+            if self._now_in_kyiv() >= self.MANDATORY_REGISTRATION_DATE and user_id not in self.user_ids:
+                should_remove = True
+
             if self.is_night_time:
                 if (
                     message.message_thread_id is None
                     or message.message_thread_id not in self.allowed_topic_ids
                 ):
-                    await context.bot.delete_message(
-                        chat_id=self.bmp_chat_id, message_id=message.message_id
-                    )
+                    should_remove = True
+
+            if should_remove:
+                await context.bot.delete_message(
+                    chat_id=self.bmp_chat_id, message_id=message.message_id
+                )
         else:
             if user.status == ChatMemberStatus.LEFT:
                 await context.bot.send_message(
