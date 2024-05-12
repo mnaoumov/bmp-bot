@@ -236,7 +236,7 @@ class BmpBot:
             if user.status == ChatMemberStatus.LEFT:
                 await context.bot.send_message(
                     chat_id=message.chat_id,
-                    text='Ви не є активістом ГО "Батько МАЄ ПРАВО"',
+                    text='Ви не є учасником ГО "Батько МАЄ ПРАВО"!',
                     parse_mode="Markdown",
                 )
                 return
@@ -262,14 +262,14 @@ class BmpBot:
                         indent=2,
                     )
                 await context.bot.send_message(
-                    chat_id=message.chat_id, text="Дякую за реєстрацію"
+                    chat_id=message.chat_id, text="Дякую за реєстрацію!"
                 )
             else:
                 developer_link = f"[Михайлу](tg://user?id={self.developer_chat_id})"
                 await context.bot.send_message(
                     chat_id=message.chat_id,
                     text=f"""Я поки не вмію виконувати команди.
-Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику {developer_link}""",
+Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику {developer_link}.""",
                     parse_mode="Markdown",
                 )
 
@@ -290,7 +290,7 @@ class BmpBot:
             chat_id=self.bmp_chat_id,
             text=f"""Батьки, оголошується режим тиші {schedule_str} ({day_type} день).
 Всі повідомлення у цей час будуть автоматично видалятися.
-У топіках {self.allowed_topic_links_str} можна писати без часових обмежень""",
+У топіках {self.allowed_topic_links_str} можна писати без часових обмежень.""",
             parse_mode="Markdown",
         )
 
