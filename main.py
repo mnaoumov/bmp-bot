@@ -111,7 +111,9 @@ class BmpBot:
         )
 
         self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
-        self.mandatory_registration_date = datetime(2024, 6, 1, tzinfo=self.kyiv_timezone)
+        self.mandatory_registration_date = datetime(
+            2024, 6, 1, tzinfo=self.kyiv_timezone
+        )
 
         self.app = ApplicationBuilder().token(self.bot_token).build()
         self.app.add_error_handler(self._handle_error)
@@ -241,7 +243,10 @@ class BmpBot:
 
             should_remove = False
 
-            if self._now_in_kyiv() >= self.mandatory_registration_date and user_id not in self.user_ids:
+            if (
+                self._now_in_kyiv() >= self.mandatory_registration_date
+                and user_id not in self.user_ids
+            ):
                 should_remove = True
 
             if self.is_night_time:
