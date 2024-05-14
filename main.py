@@ -29,11 +29,13 @@ class User:
         username: str = None,
         first_name: str = None,
         last_name: str = None,
+        registration_date: datetime = None,
     ) -> None:
         self.id = id
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
+        self.registration_date = registration_date
 
     def to_dict(self) -> dict:
         """
@@ -45,7 +47,27 @@ class User:
             "username": self.username,
             "first_name": self.first_name,
             "last_name": self.last_name,
+            "registration_date": (
+                self.registration_date.isoformat() if self.registration_date else None
+            ),
         }
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """
+        Parse User object from dictionary
+        """
+        return cls(
+            id=data.get("id"),
+            username=data.get("username"),
+            first_name=data.get("first_name"),
+            last_name=data.get("last_name"),
+            registration_date=(
+                datetime.fromisoformat(data["registration_date"])
+                if data.get("registration_date")
+                else None
+            ),
+        )
 
 
 class BmpBot:
@@ -147,7 +169,7 @@ class BmpBot:
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
             ) as file:
-                self.users = [User(**d) for d in json.load(file)]
+                self.users = [User.from_dict(d) for d in json.load(file)]
         else:
             self.users = []
 
@@ -250,6 +272,7 @@ class BmpBot:
                         username=message.from_user.username,
                         first_name=message.from_user.first_name,
                         last_name=message.from_user.last_name,
+                        registration_date=self._now_in_kyiv(),
                     )
                 )
 
