@@ -219,10 +219,7 @@ class BmpBot:
     async def _handle_message(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        message = update.message
-
-        if update.edited_message and update.edited_message.forward_date:
-            message = update.edited_message
+        message = update.message or update.edited_message
 
         if message is None:
             self.logger.warning("Cannot handle update without message: %s", update)
@@ -248,6 +245,12 @@ class BmpBot:
                 and user_id not in self.user_ids
             ):
                 should_remove = True
+
+
+            date = message.date or message.forward_date
+            diff = self._now_in_kyiv() - date
+            if diff.total_seconds() > 60:
+                return
 
             if self.is_night_time:
                 if (
