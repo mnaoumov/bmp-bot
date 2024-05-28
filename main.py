@@ -83,7 +83,7 @@ class BmpBot:
     bot_token: str
     bmp_chat_id: int
     developer_chat_id: int
-    ALLOWED_TOPICS = {"SOS": 113812, "ВІЛЬНА ТЕМА": 113831, "БЛАГОДІЙНІ ВНЕСКИ": 113806}
+    ALLOWED_TOPICS = {"SOS": 113812, "ВІЛЬНА ТЕМА": 113831, "БЛАГОДІЙНІ ВНЕСКИ": 113806, "БАЗА ЗНАНЬ": 113810}
     allowed_topic_ids = set(ALLOWED_TOPICS.values())
     allowed_topic_links_str: str
     user_ids: set[int]
