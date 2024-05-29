@@ -105,7 +105,7 @@ class BmpBot:
         short_bmp_chat_id = str(self.bmp_chat_id)[-10:]
         self.allowed_topic_links_str = ", ".join(
             [
-                f"[{topic_name}](https://t.me/c/${short_bmp_chat_id}/{topic_id})"
+                f"[{topic_name}](https://t.me/c/{short_bmp_chat_id}/{topic_id})"
                 for topic_name, topic_id in self.ALLOWED_TOPICS.items()
             ]
         )
