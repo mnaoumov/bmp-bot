@@ -83,7 +83,12 @@ class BmpBot:
     bot_token: str
     bmp_chat_id: int
     developer_chat_id: int
-    ALLOWED_TOPICS = {"SOS": 113812, "ВІЛЬНА ТЕМА": 113831, "БЛАГОДІЙНІ ВНЕСКИ": 113806, "БАЗА ЗНАНЬ": 113810}
+    ALLOWED_TOPICS = {
+        "SOS": 113812,
+        "ВІЛЬНА ТЕМА": 113831,
+        "БЛАГОДІЙНІ ВНЕСКИ": 113806,
+        "БАЗА ЗНАНЬ": 113810,
+    }
     allowed_topic_ids = set(ALLOWED_TOPICS.values())
     allowed_topic_links_str: str
     user_ids: set[int]
@@ -93,6 +98,11 @@ class BmpBot:
     KYIV_TIMEZONE_NAME: str = "Europe/Kiev"
     kyiv_timezone: tzinfo
     mandatory_registration_date: datetime
+    BOT_TOPIC_ID: int = 207968
+    free_topic_link: str
+    silence_rule_link: str = "https://t.me/c/1290587927/1/207964"
+    registration_rule_link: str = "https://t.me/c/1290587927/1/207446"
+    payments_rule_link: str = "https://t.me/c/1290587927/113806/191878"
 
     def main(self) -> None:
         """
@@ -102,13 +112,11 @@ class BmpBot:
         self._setup_logger()
         self._init_secrets()
 
-        short_bmp_chat_id = str(self.bmp_chat_id)[-10:]
         self.allowed_topic_links_str = ", ".join(
-            [
-                f"[{topic_name}](https://t.me/c/{short_bmp_chat_id}/{topic_id})"
-                for topic_name, topic_id in self.ALLOWED_TOPICS.items()
-            ]
+            [self._get_topic_link(topic_name) for topic_name in self.ALLOWED_TOPICS]
         )
+
+        self.free_topic_link = self._get_topic_link("ВІЛЬНА ТЕМА")
 
         self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
         self.mandatory_registration_date = datetime(
@@ -130,6 +138,11 @@ class BmpBot:
         )
 
         self.app.run_polling()
+
+    def _get_topic_link(self, topic_name: str) -> str:
+        short_bmp_chat_id = str(self.bmp_chat_id)[-10:]
+        topic_id = self.ALLOWED_TOPICS[topic_name]
+        return f"[{topic_name}](https://t.me/c/{short_bmp_chat_id}/{topic_id})"
 
     def _setup_logger(self) -> None:
         self.logger = logging.getLogger("my_logger")
@@ -238,14 +251,32 @@ class BmpBot:
                 self.logger.debug("message: is admin")
                 return
 
+        if message.new_chat_members:
+            for new_member in message.new_chat_members:
+                self.logger.info("New user registered: %s", new_member.id)
+                user_name = new_member.username or new_member.first_name or "Учасник"
+                user_link = f"[{user_name}](tg://user?id={new_member.id})"
+
+                await context.bot.send_message(
+                    chat_id=self.bmp_chat_id,
+                    message_thread_id=self.BOT_TOPIC_ID,
+                    text=(
+                        f'Шановний {user_link}, вітаємо у чаті ГО "Батько МАЄ ПРАВО"!\n'
+                        f"Відповідно до [правил]({self.registration_rule_link}) чату, "
+                        "будь ласка, зареєструйтеся у чат-боті."
+                    ),
+                    parse_mode="Markdown",
+                )
+
             should_remove = False
+            should_redirect = True
 
             if (
                 self._now_in_kyiv() >= self.mandatory_registration_date
                 and user_id not in self.user_ids
             ):
                 should_remove = True
-
+                should_redirect = False
 
             date = message.date or message.forward_date
             diff = self._now_in_kyiv() - date
@@ -260,6 +291,45 @@ class BmpBot:
                     should_remove = True
 
             if should_remove:
+                user_name = (
+                    message.from_user.username
+                    or message.from_user.first_name
+                    or "Учасник"
+                )
+                user_link = f"[{user_name}](tg://user?id={message.from_user.id})"
+
+                if should_redirect:
+                    await context.bot.forward_message(
+                        chat_id=self.bmp_chat_id,
+                        from_chat_id=self.bmp_chat_id,
+                        message_id=message.message_id,
+                        message_thread_id=self.ALLOWED_TOPICS["ВІЛЬНА ТЕМА"],
+                    )
+
+                    await context.bot.send_message(
+                        chat_id=self.bmp_chat_id,
+                        message_thread_id=self.BOT_TOPIC_ID,
+                        text=(
+                            f"Шановний {user_link}, ваше повідомлення було переправлено у топік "
+                            f"{self.free_topic_link}, оскільки ви намагалися написати у "
+                            "недозволений топік під час режиму тиші.\n"
+                            f"Будь ласка, дотримуйтесь [правил]({self.silence_rule_link}) чату."
+                        ),
+                        parse_mode="Markdown",
+                    )
+                else:
+                    await context.bot.send_message(
+                        chat_id=self.bmp_chat_id,
+                        message_thread_id=self.BOT_TOPIC_ID,
+                        text=(
+                            f"Шановний {user_link}, ваше повідомлення було видалене, "
+                            "оскільки ви ще не зареєструвалися у чат-боті.\n"
+                            f"Будь ласка, дотримуйтесь [правил]({self.registration_rule_link}) "
+                            "чату."
+                        ),
+                        parse_mode="Markdown",
+                    )
+
                 await context.bot.delete_message(
                     chat_id=self.bmp_chat_id, message_id=message.message_id
                 )
@@ -300,8 +370,11 @@ class BmpBot:
                 developer_link = f"[Михайлу](tg://user?id={self.developer_chat_id})"
                 await context.bot.send_message(
                     chat_id=message.chat_id,
-                    text=f"""Я поки не вмію виконувати команди.
-Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, моєму розробнику {developer_link}.""",
+                    text=(
+                        "Я поки не вмію виконувати команди.\n"
+                        "Якщо у вас є пропозиції корисних команд, напишіть, будь ласка, "
+                        f"моєму розробнику {developer_link}."
+                    ),
                     parse_mode="Markdown",
                 )
 
@@ -340,7 +413,10 @@ class BmpBot:
 
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
-            text=f"""Батьки, режим тиші закінчився. Можна вільно писати у всіх топіках до {self.NIGHT_TIME_START_HOUR}:00.""",
+            text=(
+                "Батьки, режим тиші закінчився. Можна вільно писати у всіх "
+                f"топіках до {self.NIGHT_TIME_START_HOUR}:00."
+            ),
             parse_mode="Markdown",
         )
 
@@ -369,10 +445,13 @@ class BmpBot:
         if self._is_monday_or_friday(self._now_in_kyiv()):
             await context.bot.send_message(
                 chat_id=self.bmp_chat_id,
-                text="""‼️НАГАДУЄМО ПРО ОБОВ'ЯЗКОВІСТЬ СПЛАТИ БЛАГОДІЙНИХ ВНЕСКІВ ЗГІДНО ПРАВИЛ ГРУПИ. НЕСПЛАТА ВНЕСКІВ ПРИЗВОДИТЬ ДО ВИДАЛЕННЯ З ГРУП ГО БАТЬКО МАЄ ПРАВО.
-Правила сплати благодійних внесків за посиланням:
-https://t.me/c/1290587927/113806/191878 ‼️
-""",
+                text=(
+                    "‼️НАГАДУЄМО ПРО ОБОВ'ЯЗКОВІСТЬ СПЛАТИ БЛАГОДІЙНИХ ВНЕСКІВ ЗГІДНО "
+                    "ПРАВИЛ ГРУПИ. НЕСПЛАТА ВНЕСКІВ ПРИЗВОДИТЬ ДО ВИДАЛЕННЯ З ГРУП "
+                    "ГО БАТЬКО МАЄ ПРАВО.\n"
+                    "Правила сплати благодійних внесків за посиланням:\n"
+                    f"{self.payments_rule_link} ‼️"
+                ),
                 parse_mode="Markdown",
             )
 
