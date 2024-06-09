@@ -394,6 +394,7 @@ class BmpBot:
 
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
+            message_thread_id=self.BOT_TOPIC_ID,
             text=f"""Батьки, оголошується режим тиші {schedule_str} ({day_type} день).
 Всі повідомлення у цей час будуть автоматично видалятися.
 У топіках {self.allowed_topic_links_str} можна писати без часових обмежень.""",
@@ -414,6 +415,7 @@ class BmpBot:
 
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
+            message_thread_id=self.BOT_TOPIC_ID,
             text=(
                 "Батьки, режим тиші закінчився. Можна вільно писати у всіх "
                 f"топіках до {self.NIGHT_TIME_START_HOUR}:00."
@@ -423,6 +425,7 @@ class BmpBot:
 
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
+            message_thread_id=self.BOT_TOPIC_ID,
             text=f"""*ВАЖЛИВА ІНФОРМАЦІЯ ВІД АДМІНІСТРАТОРІВ ТЕЛЕГРАМ ЧАТІВ ГО "БАТЬКО МАЄ ПРАВО*"
 
 В Телеграм чатах діє чат-бот @BatkoMaePravoBot.
@@ -446,6 +449,7 @@ class BmpBot:
         if self._is_monday_or_friday(self._now_in_kyiv()):
             await context.bot.send_message(
                 chat_id=self.bmp_chat_id,
+                message_thread_id=self.BOT_TOPIC_ID,
                 text=(
                     "‼️НАГАДУЄМО ПРО ОБОВ'ЯЗКОВІСТЬ СПЛАТИ БЛАГОДІЙНИХ ВНЕСКІВ ЗГІДНО "
                     "ПРАВИЛ ГРУПИ. НЕСПЛАТА ВНЕСКІВ ПРИЗВОДИТЬ ДО ВИДАЛЕННЯ З ГРУП "
