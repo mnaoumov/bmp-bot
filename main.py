@@ -449,7 +449,6 @@ class BmpBot:
         if self._is_monday_or_friday(self._now_in_kyiv()):
             await context.bot.send_message(
                 chat_id=self.bmp_chat_id,
-                message_thread_id=self.BOT_TOPIC_ID,
                 text=(
                     "‼️НАГАДУЄМО ПРО ОБОВ'ЯЗКОВІСТЬ СПЛАТИ БЛАГОДІЙНИХ ВНЕСКІВ ЗГІДНО "
                     "ПРАВИЛ ГРУПИ. НЕСПЛАТА ВНЕСКІВ ПРИЗВОДИТЬ ДО ВИДАЛЕННЯ З ГРУП "
