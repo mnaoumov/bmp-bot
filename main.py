@@ -251,89 +251,89 @@ class BmpBot:
                 self.logger.debug("message: is admin")
                 return
 
-        if message.new_chat_members:
-            for new_member in message.new_chat_members:
-                self.logger.info("New user registered: %s", new_member.id)
-                user_name = new_member.username or new_member.first_name or "Учасник"
-                user_link = f"[{user_name}](tg://user?id={new_member.id})"
+            if message.new_chat_members:
+                for new_member in message.new_chat_members:
+                    self.logger.info("New user registered: %s", new_member.id)
+                    user_name = new_member.username or new_member.first_name or "Учасник"
+                    user_link = f"[{user_name}](tg://user?id={new_member.id})"
 
-                await context.bot.send_message(
-                    chat_id=self.bmp_chat_id,
-                    message_thread_id=self.BOT_TOPIC_ID,
-                    text=(
-                        f'Шановний {user_link}, вітаємо у чаті ГО "Батько МАЄ ПРАВО"!\n'
-                        f"Відповідно до [правил]({self.registration_rule_link}) чату, "
-                        "будь ласка, зареєструйтеся у чат-боті."
-                    ),
-                    parse_mode="Markdown",
-                )
-            return
+                    await context.bot.send_message(
+                        chat_id=self.bmp_chat_id,
+                        message_thread_id=self.BOT_TOPIC_ID,
+                        text=(
+                            f'Шановний {user_link}, вітаємо у чаті ГО "Батько МАЄ ПРАВО"!\n'
+                            f"Відповідно до [правил]({self.registration_rule_link}) чату, "
+                            "будь ласка, зареєструйтеся у чат-боті."
+                        ),
+                        parse_mode="Markdown",
+                    )
+                return
 
-        should_remove = False
-        should_redirect = True
+            should_remove = False
+            should_redirect = True
 
-        if (
-            self._now_in_kyiv() >= self.mandatory_registration_date
-            and user_id not in self.user_ids
-        ):
-            should_remove = True
-            should_redirect = False
-
-        date = message.date or message.forward_date
-        diff = self._now_in_kyiv() - date
-        if diff.total_seconds() > 60:
-            return
-
-        if self.is_night_time:
             if (
-                message.message_thread_id is None
-                or message.message_thread_id not in self.allowed_topic_ids
+                self._now_in_kyiv() >= self.mandatory_registration_date
+                and user_id not in self.user_ids
             ):
                 should_remove = True
+                should_redirect = False
 
-        if should_remove:
-            user_name = (
-                message.from_user.username
-                or message.from_user.first_name
-                or "Учасник"
-            )
-            user_link = f"[{user_name}](tg://user?id={message.from_user.id})"
+            date = message.date or message.forward_date
+            diff = self._now_in_kyiv() - date
+            if diff.total_seconds() > 60:
+                return
 
-            if should_redirect:
-                await context.bot.forward_message(
-                    chat_id=self.bmp_chat_id,
-                    from_chat_id=self.bmp_chat_id,
-                    message_id=message.message_id,
-                    message_thread_id=self.ALLOWED_TOPICS["ВІЛЬНА ТЕМА"],
+            if self.is_night_time:
+                if (
+                    message.message_thread_id is None
+                    or message.message_thread_id not in self.allowed_topic_ids
+                ):
+                    should_remove = True
+
+            if should_remove:
+                user_name = (
+                    message.from_user.username
+                    or message.from_user.first_name
+                    or "Учасник"
                 )
+                user_link = f"[{user_name}](tg://user?id={message.from_user.id})"
 
-                await context.bot.send_message(
-                    chat_id=self.bmp_chat_id,
-                    message_thread_id=self.BOT_TOPIC_ID,
-                    text=(
-                        f"Шановний {user_link}, ваше повідомлення було переправлено у топік "
-                        f"{self.free_topic_link}, оскільки ви намагалися написати у "
-                        "недозволений топік під час режиму тиші.\n"
-                        f"Будь ласка, дотримуйтесь [правил]({self.silence_rule_link}) чату."
-                    ),
-                    parse_mode="Markdown",
-                )
-            else:
-                await context.bot.send_message(
-                    chat_id=self.bmp_chat_id,
-                    message_thread_id=self.BOT_TOPIC_ID,
-                    text=(
-                        f"Шановний {user_link}, ваше повідомлення було видалене, "
-                        "оскільки ви ще не зареєструвалися у чат-боті.\n"
-                        f"Будь ласка, дотримуйтесь [правил]({self.registration_rule_link}) "
-                        "чату."
-                    ),
-                    parse_mode="Markdown",
-                )
+                if should_redirect:
+                    await context.bot.forward_message(
+                        chat_id=self.bmp_chat_id,
+                        from_chat_id=self.bmp_chat_id,
+                        message_id=message.message_id,
+                        message_thread_id=self.ALLOWED_TOPICS["ВІЛЬНА ТЕМА"],
+                    )
 
-            await context.bot.delete_message(
-                chat_id=self.bmp_chat_id, message_id=message.message_id
-            )
+                    await context.bot.send_message(
+                        chat_id=self.bmp_chat_id,
+                        message_thread_id=self.BOT_TOPIC_ID,
+                        text=(
+                            f"Шановний {user_link}, ваше повідомлення було переправлено у топік "
+                            f"{self.free_topic_link}, оскільки ви намагалися написати у "
+                            "недозволений топік під час режиму тиші.\n"
+                            f"Будь ласка, дотримуйтесь [правил]({self.silence_rule_link}) чату."
+                        ),
+                        parse_mode="Markdown",
+                    )
+                else:
+                    await context.bot.send_message(
+                        chat_id=self.bmp_chat_id,
+                        message_thread_id=self.BOT_TOPIC_ID,
+                        text=(
+                            f"Шановний {user_link}, ваше повідомлення було видалене, "
+                            "оскільки ви ще не зареєструвалися у чат-боті.\n"
+                            f"Будь ласка, дотримуйтесь [правил]({self.registration_rule_link}) "
+                            "чату."
+                        ),
+                        parse_mode="Markdown",
+                    )
+
+                await context.bot.delete_message(
+                    chat_id=self.bmp_chat_id, message_id=message.message_id
+                )
         else:
             if user.status == ChatMemberStatus.LEFT:
                 await context.bot.send_message(
