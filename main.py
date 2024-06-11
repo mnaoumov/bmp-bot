@@ -244,13 +244,6 @@ class BmpBot:
 
         if message.chat_id == self.bmp_chat_id:
             self.logger.debug("message: is_night_time = %s", self.is_night_time)
-            if (
-                user.status == ChatMemberStatus.ADMINISTRATOR
-                or user.status == ChatMemberStatus.OWNER
-            ):
-                self.logger.debug("message: is admin")
-                return
-
             if message.new_chat_members:
                 for new_member in message.new_chat_members:
                     self.logger.info("New user registered: %s", new_member.id)
@@ -267,6 +260,13 @@ class BmpBot:
                         ),
                         parse_mode="Markdown",
                     )
+                return
+
+            if (
+                user.status == ChatMemberStatus.ADMINISTRATOR
+                or user.status == ChatMemberStatus.OWNER
+            ):
+                self.logger.debug("message: is admin")
                 return
 
             should_remove = False
