@@ -252,7 +252,6 @@ class BmpBot:
 
                     await context.bot.send_message(
                         chat_id=self.bmp_chat_id,
-                        message_thread_id=self.BOT_TOPIC_ID,
                         text=(
                             f'Шановний {user_link}, вітаємо у чаті ГО "Батько МАЄ ПРАВО"!\n'
                             f"Відповідно до [правил]({self.registration_rule_link}) чату, "
