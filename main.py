@@ -29,13 +29,17 @@ class User:
         username: str = None,
         first_name: str = None,
         last_name: str = None,
-        registration_date: datetime = None,
+        bot_registration_date: datetime = None,
+        group_registration_date: datetime = None,
+        is_active: bool = None,
     ) -> None:
         self.id = id
         self.username = username
         self.first_name = first_name
         self.last_name = last_name
-        self.registration_date = registration_date
+        self.bot_registration_date = bot_registration_date
+        self.group_registration_date = group_registration_date
+        self.is_active = is_active
 
     def to_dict(self) -> dict:
         """
@@ -47,9 +51,17 @@ class User:
             "username": self.username,
             "first_name": self.first_name,
             "last_name": self.last_name,
-            "registration_date": (
-                self.registration_date.isoformat() if self.registration_date else None
+            "bot_registration_date": (
+                self.bot_registration_date.isoformat()
+                if self.bot_registration_date
+                else None
             ),
+            "group_registration_date": (
+                self.group_registration_date.isoformat()
+                if self.group_registration_date
+                else None
+            ),
+            "is_active": self.is_active,
         }
 
     @classmethod
@@ -62,11 +74,17 @@ class User:
             username=data.get("username"),
             first_name=data.get("first_name"),
             last_name=data.get("last_name"),
-            registration_date=(
-                datetime.fromisoformat(data["registration_date"])
-                if data.get("registration_date")
+            bot_registration_date=(
+                datetime.fromisoformat(data["bot_registration_date"])
+                if data.get("bot_registration_date")
                 else None
             ),
+            group_registration_date=(
+                datetime.fromisoformat(data["group_registration_date"])
+                if data.get("group_registration_date")
+                else None
+            ),
+            is_active=data.get("is_active"),
         )
 
 
@@ -91,7 +109,7 @@ class BmpBot:
     }
     allowed_topic_ids = set(ALLOWED_TOPICS.values())
     allowed_topic_links_str: str
-    user_ids: set[int]
+    bot_registered_user_ids: set[int]
     users: list[User]
     app: Application
     USERS_JSON_FILE_NAME: str = "users.json"
@@ -188,7 +206,11 @@ class BmpBot:
         else:
             self.users = []
 
-        self.user_ids = set(user.id for user in self.users)
+        self.bot_registered_user_ids = set(
+            user.id
+            for user in self.users
+            if user.is_active and user.bot_registration_date is not None
+        )
         now_in_kyiv = self._now_in_kyiv()
         self.is_night_time = (
             now_in_kyiv.hour >= self.NIGHT_TIME_START_HOUR
@@ -247,8 +269,7 @@ class BmpBot:
             if message.new_chat_members:
                 for new_member in message.new_chat_members:
                     self.logger.info("New user registered: %s", new_member.id)
-                    user_name = new_member.username or new_member.first_name or "Учасник"
-                    user_link = f"[{user_name}](tg://user?id={new_member.id})"
+                    user_link = self._make_user_link(new_member)
 
                     await context.bot.send_message(
                         chat_id=self.bmp_chat_id,
@@ -260,6 +281,27 @@ class BmpBot:
                         ),
                         parse_mode="Markdown",
                     )
+
+                    user = next((u for u in self.users if u.id == new_member.id), None)
+
+                    if user is None:
+                        self.users.append(
+                            User(
+                                id=new_member.id,
+                                username=new_member.username,
+                                first_name=new_member.first_name,
+                                last_name=new_member.last_name,
+                                group_registration_date=self._now_in_kyiv(),
+                                bot_registration_date=None,
+                                is_active=True,
+                            )
+                        )
+                    else:
+                        user.is_active = True
+                        user.group_registration_date = self._now_in_kyiv()
+
+                self._update_users_json()
+
                 return
 
             if (
@@ -274,7 +316,7 @@ class BmpBot:
 
             if (
                 self._now_in_kyiv() >= self.mandatory_registration_date
-                and user_id not in self.user_ids
+                and user_id not in self.bot_registered_user_ids
             ):
                 should_remove = True
                 should_redirect = False
@@ -292,12 +334,7 @@ class BmpBot:
                     should_remove = True
 
             if should_remove:
-                user_name = (
-                    message.from_user.username
-                    or message.from_user.first_name
-                    or "Учасник"
-                )
-                user_link = f"[{user_name}](tg://user?id={message.from_user.id})"
+                user_link = self._make_user_link(message.from_user)
 
                 if should_redirect:
                     await context.bot.forward_message(
@@ -343,27 +380,11 @@ class BmpBot:
                 )
                 return
 
-            if user_id not in self.user_ids:
-                self.user_ids.add(user_id)
-                self.users.append(
-                    User(
-                        id=user_id,
-                        username=message.from_user.username,
-                        first_name=message.from_user.first_name,
-                        last_name=message.from_user.last_name,
-                        registration_date=self._now_in_kyiv(),
-                    )
-                )
-
-                with open(
-                    file=self.USERS_JSON_FILE_NAME, mode="w", encoding="utf8"
-                ) as file:
-                    json.dump(
-                        [user.to_dict() for user in self.users],
-                        file,
-                        ensure_ascii=False,
-                        indent=2,
-                    )
+            if user_id not in self.bot_registered_user_ids:
+                self.bot_registered_user_ids.add(user_id)
+                user = next((u for u in self.users if u.id == user_id))
+                user.bot_registration_date = self._now_in_kyiv()
+                self._update_users_json()
                 await context.bot.send_message(
                     chat_id=message.chat_id, text="Дякую за реєстрацію!"
                 )
@@ -408,10 +429,22 @@ class BmpBot:
     async def _end_night_time(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         self.is_night_time = False
         self.logger.debug("endNightTime: is_night_time = False")
-        bot_himself = 1
-        registered_users_count = len(self.users) + bot_himself
+
         chat = await context.bot.get_chat(self.bmp_chat_id)
-        users_count = await chat.get_member_count()
+        for user in self.users:
+            if not user.is_active:
+                continue
+            user_obj = await chat.get_member(user.id)
+            if user_obj.status == ChatMemberStatus.LEFT:
+                user.is_active = False
+        self._update_users_json()
+
+        active_users = [user for user in self.users if user.is_active]
+        bot_registered_users = [
+            user for user in active_users if user.bot_registration_date is not None
+        ]
+        bot_registered_users_count = len(bot_registered_users)
+        active_users_count = len(active_users)
 
         await context.bot.send_message(
             chat_id=self.bmp_chat_id,
@@ -430,7 +463,7 @@ class BmpBot:
 
 В Телеграм чатах діє чат-бот @BatkoMaePravoBot.
 Бот було розроблено з метою надсилання важливих повідомлень від ГО "Батько МАЄ ПРАВО" для учасників груп.
-Натомість, у чат-боті зареєструвалося лише {registered_users_count} учасників групи зі {users_count}.
+Натомість, у чат-боті зареєструвалося лише {bot_registered_users_count} учасників групи зі {active_users_count}.
 Це значно погіршує комунікацію.
 
 Адміністрацією ГО "Батько МАЄ ПРАВО" було прийнято рішення ввести правило обов'язкової реєстрації кожного учасника груп у чат-боті @BatkoMaePravoBot.
@@ -443,6 +476,20 @@ class BmpBot:
 З повагою,
 ГО "Батько МАЄ ПРАВО"
 """,
+            parse_mode="Markdown",
+        )
+
+        bot_unregistered_users = [
+            user for user in active_users if user.bot_registration_date is None
+        ]
+        bot_unregistered_user_links = ", ".join(
+            [self._make_user_link(user) for user in bot_unregistered_users]
+        )
+
+        await context.bot.send_message(
+            chat_id=self.bmp_chat_id,
+            message_thread_id=self.BOT_TOPIC_ID,
+            text=f"Шановні {bot_unregistered_user_links}!\nПросимо зареєструватися у чат-боті!",
             parse_mode="Markdown",
         )
 
@@ -467,6 +514,19 @@ class BmpBot:
             await self._start_night_time(context)
         elif hour == self._night_time_end_hour(now_in_kyiv):
             await self._end_night_time(context)
+
+    def _update_users_json(self) -> None:
+        with open(file=self.USERS_JSON_FILE_NAME, mode="w", encoding="utf8") as file:
+            json.dump(
+                [user.to_dict() for user in self.users],
+                file,
+                ensure_ascii=False,
+                indent=2,
+            )
+
+    def _make_user_link(self, user: User) -> str:
+        user_name = user.username or user.first_name or "Учасник"
+        return f"[{user_name}](tg://user?id={user.id})"
 
 
 if __name__ == "__main__":
