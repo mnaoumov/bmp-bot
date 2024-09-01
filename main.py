@@ -12,9 +12,10 @@ from datetime import datetime, tzinfo
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import gettz
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import Chat, ChatMember, ChatMemberLeft, Update, User as TelegramUser
 from telegram.constants import ChatMemberStatus
 from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler
+from telegram.error import BadRequest
 
 
 class User:
@@ -262,7 +263,7 @@ class BmpBot:
 
         chat = await context.bot.get_chat(self.bmp_chat_id)
         user_id = message.from_user.id
-        user = await chat.get_member(user_id)
+        user = await self._get_user(chat, user_id)
 
         if message.chat_id == self.bmp_chat_id:
             self.logger.debug("message: is_night_time = %s", self.is_night_time)
@@ -434,7 +435,7 @@ class BmpBot:
         for user in self.users:
             if not user.is_active:
                 continue
-            user_obj = await chat.get_member(user.id)
+            user_obj = await self._get_user(chat, user.id)
             if user_obj.status == ChatMemberStatus.LEFT:
                 user.is_active = False
         self._update_users_json()
@@ -527,6 +528,17 @@ class BmpBot:
     def _make_user_link(self, user: User) -> str:
         user_name = user.username or user.first_name or "Учасник"
         return f"[{user_name}](tg://user?id={user.id})"
+
+    async def _get_user(self, chat: Chat, user_id: str) -> ChatMember:
+        try:
+            chat_member = await chat.get_member(user_id)
+            return chat_member
+        except BadRequest as e:
+            if e.message == "Member not found":
+                return ChatMemberLeft(
+                    TelegramUser(id=user_id, first_name="User not found", is_bot=False)
+                )
+            raise e
 
 
 if __name__ == "__main__":
