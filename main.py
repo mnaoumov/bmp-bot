@@ -198,7 +198,7 @@ class BmpBot:
         self.logger.error(error_message)
         await context.bot.send_message(self.developer_chat_id, error_message)
 
-    async def _initialize(self, _: ContextTypes.DEFAULT_TYPE) -> None:
+    async def _initialize(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         if os.path.exists(self.USERS_JSON_FILE_NAME):
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
@@ -218,6 +218,9 @@ class BmpBot:
             or now_in_kyiv.hour < self._night_time_end_hour(now_in_kyiv)
         )
         self.logger.debug("Init: is_night_time = %s", self.is_night_time)
+
+        chat = await context.bot.get_chat(self.bmp_chat_id)
+        await self._refresh_users(chat)
 
     def _handle_unhandled_exceptions(self, exc_type, exc_value, exc_traceback) -> None:
         if issubclass(exc_type, KeyboardInterrupt):
@@ -263,7 +266,7 @@ class BmpBot:
 
         chat = await context.bot.get_chat(self.bmp_chat_id)
         user_id = message.from_user.id
-        user = await self._get_user(chat, user_id)
+        chat_member = await self._get_chat_member(chat, user_id)
 
         if message.chat_id == self.bmp_chat_id:
             self.logger.debug("message: is_night_time = %s", self.is_night_time)
@@ -305,10 +308,7 @@ class BmpBot:
 
                 return
 
-            if (
-                user.status == ChatMemberStatus.ADMINISTRATOR
-                or user.status == ChatMemberStatus.OWNER
-            ):
+            if (self._is_admin(chat_member)):
                 self.logger.debug("message: is admin")
                 return
 
@@ -373,7 +373,7 @@ class BmpBot:
                     chat_id=self.bmp_chat_id, message_id=message.message_id
                 )
         else:
-            if user.status == ChatMemberStatus.LEFT:
+            if not self._is_active(chat_member):
                 await context.bot.send_message(
                     chat_id=message.chat_id,
                     text='Ви не є учасником ГО "Батько МАЄ ПРАВО"!',
@@ -383,8 +383,8 @@ class BmpBot:
 
             if user_id not in self.bot_registered_user_ids:
                 self.bot_registered_user_ids.add(user_id)
-                user = next((u for u in self.users if u.id == user_id))
-                user.bot_registration_date = self._now_in_kyiv()
+                chat_member = next((u for u in self.users if u.id == user_id))
+                chat_member.bot_registration_date = self._now_in_kyiv()
                 self._update_users_json()
                 await context.bot.send_message(
                     chat_id=message.chat_id, text="Дякую за реєстрацію!"
@@ -432,13 +432,7 @@ class BmpBot:
         self.logger.debug("endNightTime: is_night_time = False")
 
         chat = await context.bot.get_chat(self.bmp_chat_id)
-        for user in self.users:
-            if not user.is_active:
-                continue
-            user_obj = await self._get_user(chat, user.id)
-            if user_obj.status == ChatMemberStatus.LEFT:
-                user.is_active = False
-        self._update_users_json()
+        await self._refresh_users(chat)
 
         active_users = [user for user in self.users if user.is_active]
         bot_registered_users = [
@@ -529,7 +523,7 @@ class BmpBot:
         user_name = user.username or user.first_name or "Учасник"
         return f"[{user_name}](tg://user?id={user.id})"
 
-    async def _get_user(self, chat: Chat, user_id: str) -> ChatMember:
+    async def _get_chat_member(self, chat: Chat, user_id: str) -> ChatMember:
         try:
             chat_member = await chat.get_member(user_id)
             return chat_member
@@ -539,7 +533,21 @@ class BmpBot:
                     TelegramUser(id=user_id, first_name="User not found", is_bot=False)
                 )
             raise e
+        
+    async def _refresh_users(self, chat) -> None:
+        for user in self.users:
+            if not user.is_active:
+                continue
+            chat_member = await self._get_chat_member(chat, user.id)
+            if not self._is_active(chat_member):
+                user.is_active = False
+        self._update_users_json()
 
+    def _is_admin(self, chat_member: ChatMember) -> bool:
+        return chat_member.status == ChatMemberStatus.ADMINISTRATOR or chat_member.status == ChatMemberStatus.OWNER
+    
+    def _is_active(self, chat_member: ChatMember) -> bool:
+        return self._is_admin(chat_member) or chat_member.status == ChatMemberStatus.MEMBER
 
 if __name__ == "__main__":
     BmpBot().main()
