@@ -199,6 +199,18 @@ class BmpBot:
         await context.bot.send_message(self.developer_chat_id, error_message)
 
     async def _initialize(self, context: ContextTypes.DEFAULT_TYPE) -> None:
+        telegram_handler = logging.StreamHandler(sys.stdout)
+        telegram_handler.setLevel(logging.INFO)
+        telegram_handler.emit = lambda record: context.bot.send_message(
+            chat_id=self.developer_chat_id,
+            text=f"Log: {record.getMessage()}"
+        )
+        self.logger.addHandler(telegram_handler);
+        telegram_handler.emit = lambda record: context.bot.send_message(
+            chat_id=self.developer_chat_id,
+            text=f"Log: {record.getMessage()}"
+        )
+        self.logger.addHandler(telegram_handler);
         if os.path.exists(self.USERS_JSON_FILE_NAME):
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
