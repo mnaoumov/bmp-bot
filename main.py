@@ -12,10 +12,11 @@ from datetime import datetime, tzinfo
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import gettz
 from dotenv import load_dotenv
-from telegram import Chat, ChatMember, ChatMemberLeft, Update, User as TelegramUser
+from telegram import Chat, ChatMember, ChatMemberLeft, Update, User as TelegramUser, Bot
 from telegram.constants import ChatMemberStatus
 from telegram.ext import Application, ApplicationBuilder, ContextTypes, MessageHandler
 from telegram.error import BadRequest
+import asyncio
 
 
 class User:
@@ -87,6 +88,36 @@ class User:
             ),
             is_active=data.get("is_active"),
         )
+
+
+class TelegramHandler(logging.Handler):
+    def __init__(self, bot: Bot, chat_id: int):
+        super().__init__()
+        self.bot: Bot = bot
+        self.chat_id: int = chat_id
+        self.queue: asyncio.Queue = asyncio.Queue()
+        self.task: asyncio.Task | None = None
+
+    def emit(self, record: logging.LogRecord) -> None:
+        log_entry: str = self.format(record)
+        asyncio.create_task(self.queue.put(log_entry))
+        if self.task is None or self.task.done():
+            self.task = asyncio.create_task(self.send_logs())
+
+    async def send_logs(self) -> None:
+        while True:
+            try:
+                log_entry = await asyncio.wait_for(self.queue.get(), timeout=1.0)
+                await self.bot.send_message(chat_id=self.chat_id, text=f"Log: {log_entry}")
+                self.queue.task_done()
+            except asyncio.TimeoutError:
+                if self.queue.empty():
+                    break
+
+    def close(self) -> None:
+        if self.task:
+            self.task.cancel()
+        super().close()
 
 
 class BmpBot:
@@ -199,18 +230,13 @@ class BmpBot:
         await context.bot.send_message(self.developer_chat_id, error_message)
 
     async def _initialize(self, context: ContextTypes.DEFAULT_TYPE) -> None:
-        telegram_handler = logging.StreamHandler(sys.stdout)
+        # Add Telegram handler for logging
+        telegram_handler: TelegramHandler = TelegramHandler(context.bot, self.developer_chat_id)
         telegram_handler.setLevel(logging.INFO)
-        telegram_handler.emit = lambda record: context.bot.send_message(
-            chat_id=self.developer_chat_id,
-            text=f"Log: {record.getMessage()}"
-        )
-        self.logger.addHandler(telegram_handler);
-        telegram_handler.emit = lambda record: context.bot.send_message(
-            chat_id=self.developer_chat_id,
-            text=f"Log: {record.getMessage()}"
-        )
-        self.logger.addHandler(telegram_handler);
+        telegram_formatter: logging.Formatter = logging.Formatter("%(levelname)s - %(message)s")
+        telegram_handler.setFormatter(telegram_formatter)
+        self.logger.addHandler(telegram_handler)
+
         if os.path.exists(self.USERS_JSON_FILE_NAME):
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
