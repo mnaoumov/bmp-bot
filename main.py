@@ -241,23 +241,23 @@ class BmpBot:
             with open(
                 file=self.USERS_JSON_FILE_NAME, mode="r", encoding="utf8"
             ) as file:
-                self.users = [User.from_dict(d) for d in json.load(file)]
+                self.users: list[User] = [User.from_dict(d) for d in json.load(file)]
         else:
-            self.users = []
+            self.users: list[User] = []
 
-        self.bot_registered_user_ids = set(
+        self.bot_registered_user_ids: set[int] = set(
             user.id
             for user in self.users
             if user.is_active and user.bot_registration_date is not None
         )
-        now_in_kyiv = self._now_in_kyiv()
-        self.is_night_time = (
+        now_in_kyiv: datetime = self._now_in_kyiv()
+        self.is_night_time: bool = (
             now_in_kyiv.hour >= self.NIGHT_TIME_START_HOUR
             or now_in_kyiv.hour < self._night_time_end_hour(now_in_kyiv)
         )
         self.logger.debug("Init: is_night_time = %s", self.is_night_time)
 
-        chat = await context.bot.get_chat(self.bmp_chat_id)
+        chat: Chat = await context.bot.get_chat(self.bmp_chat_id)
         await self._refresh_users(chat)
 
     def _handle_unhandled_exceptions(self, exc_type, exc_value, exc_traceback) -> None:
