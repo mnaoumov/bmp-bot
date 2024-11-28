@@ -1,0 +1,15 @@
+{
+    "version": "0.2",
+    "ignorePaths": [],
+    "dictionaryDefinitions": [],
+    "dictionaries": [
+        "en",
+        "uk"
+    ],
+    "import": [
+        "@cspell/dict-uk-ua/cspell-ext.json"
+    ],
+    "language": "en,uk",
+    "words": [],
+    "ignoreWords": []
+}
