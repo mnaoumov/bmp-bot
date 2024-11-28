@@ -89,6 +89,31 @@ class User:
             is_active=data.get("is_active"),
         )
 
+class ForwardedMessage:
+    def __init__(self, message_id: int, message_thread_id: int):
+        self.message_id = message_id
+        self.message_thread_id = message_thread_id
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """
+        Parse ForwardedMessage object from dictionary
+        """
+        return cls(
+            message_id =data.get("message_id"),
+            message_thread_id=data.get("message_thread_id")
+        )
+
+    def to_dict(self) -> dict:
+        """
+        for JSON serialization
+        """
+
+        return {
+            "message_id": self.message_id,
+            "message_thread_id": self.message_thread_id
+        }
+
 
 class TelegramHandler(logging.Handler):
     def __init__(self, bot: Bot, chat_id: int):
@@ -138,18 +163,21 @@ class BmpBot:
         "ВІЛЬНА ТЕМА": 113831,
         "БЛАГОДІЙНІ ВНЕСКИ": 113806,
         "БАЗА ЗНАНЬ": 113810,
+        "НІЧНІ ПОВІДОМЛЕННЯ": 225231
     }
     allowed_topic_ids = set(ALLOWED_TOPICS.values())
     allowed_topic_links_str: str
     bot_registered_user_ids: set[int]
     users: list[User]
+    forwarded_messages: list[ForwardedMessage]
     app: Application
     USERS_JSON_FILE_NAME: str = "users.json"
+    FORWARDED_MESSAGES_JSON_FILE_NAME: str = "forwarded_messages.json"
     KYIV_TIMEZONE_NAME: str = "Europe/Kiev"
     kyiv_timezone: tzinfo
     mandatory_registration_date: datetime
     BOT_TOPIC_ID: int = 207968
-    free_topic_link: str
+    night_topic_link: str
     silence_rule_link: str = "https://t.me/c/1290587927/1/207964"
     registration_rule_link: str = "https://t.me/c/1290587927/1/207446"
     payments_rule_link: str = "https://t.me/c/1290587927/113806/191878"
@@ -163,10 +191,10 @@ class BmpBot:
         self._init_secrets()
 
         self.allowed_topic_links_str = ", ".join(
-            [self._get_topic_link(topic_name) for topic_name in self.ALLOWED_TOPICS]
+            [self._get_topic_link(topic_name) for topic_name in self.ALLOWED_TOPICS if topic_name != "НІЧНІ ПОВІДОМЛЕННЯ"]
         )
 
-        self.free_topic_link = self._get_topic_link("ВІЛЬНА ТЕМА")
+        self.night_topic_link = self._get_topic_link("НІЧНІ ПОВІДОМЛЕННЯ")
 
         self.kyiv_timezone = gettz(self.KYIV_TIMEZONE_NAME)
         self.mandatory_registration_date = datetime(
@@ -259,6 +287,15 @@ class BmpBot:
 
         chat: Chat = await context.bot.get_chat(self.bmp_chat_id)
         await self._refresh_users(chat)
+
+        if os.path.exists(self.FORWARDED_MESSAGES_JSON_FILE_NAME):
+            with open(
+                file=self.FORWARDED_MESSAGES_JSON_FILE_NAME, mode="r", encoding="utf8"
+            ) as file:
+                self.forwarded_messages: list[ForwardedMessage] = [ForwardedMessage.from_dict(d) for d in json.load(file)]
+        else:
+            self.forwarded_messages: list[ForwardedMessage] = []
+
 
     def _handle_unhandled_exceptions(self, exc_type, exc_value, exc_traceback) -> None:
         if issubclass(exc_type, KeyboardInterrupt):
@@ -377,11 +414,21 @@ class BmpBot:
                 user_link = self._make_user_link(message.from_user)
 
                 if should_redirect:
+                    forwarded_message = await context.bot.forward_message(
+                        chat_id=self.bmp_chat_id,
+                        from_chat_id=self.bmp_chat_id,
+                        message_id=message.message_id,
+                        message_thread_id=self.ALLOWED_TOPICS["НІЧНІ ПОВІДОМЛЕННЯ"],
+                    )
+
+                    self.forwarded_messages.append(ForwardedMessage(forwarded_message.message_id, message.message_thread_id))
+                    self._update_forwarded_messages_json()
+
                     await context.bot.forward_message(
                         chat_id=self.bmp_chat_id,
                         from_chat_id=self.bmp_chat_id,
                         message_id=message.message_id,
-                        message_thread_id=self.ALLOWED_TOPICS["ВІЛЬНА ТЕМА"],
+                        message_thread_id=message.message_thread_id,
                     )
 
                     await context.bot.send_message(
@@ -389,7 +436,7 @@ class BmpBot:
                         message_thread_id=self.BOT_TOPIC_ID,
                         text=(
                             f"Шановний {user_link}, ваше повідомлення було переправлено у топік "
-                            f"{self.free_topic_link}, оскільки ви намагалися написати у "
+                            f"{self.night_topic_link}, оскільки ви намагалися написати у "
                             "недозволений топік під час режиму тиші.\n"
                             f"Будь ласка, дотримуйтесь [правил]({self.silence_rule_link}) чату."
                         ),
@@ -541,6 +588,16 @@ class BmpBot:
                 parse_mode="Markdown",
             )
 
+        for forwarded_message in self.forwarded_messages:
+            await context.bot.forward_message(
+                chat_id=self.bmp_chat_id,
+                from_chat_id=self.bmp_chat_id,
+                message_id=forwarded_message.message_id,
+                message_thread_id=forwarded_message.message_thread_id
+            )
+        self.forwarded_messages = []
+        self._update_forwarded_messages_json()
+
     async def _run_hourly(self, context: ContextTypes.DEFAULT_TYPE) -> None:
         now_in_kyiv = self._now_in_kyiv()
         hour = now_in_kyiv.hour
@@ -558,6 +615,10 @@ class BmpBot:
                 ensure_ascii=False,
                 indent=2,
             )
+
+    def _update_forwarded_messages_json(self) -> None:
+        with open(file=self.FORWARDED_MESSAGES_JSON_FILE_NAME, mode="w", encoding="utf8") as file:
+            json.dump(self.forwarded_messages, file, ensure_ascii=False, indent=2)
 
     def _make_user_link(self, user: User) -> str:
         user_name = user.username or user.first_name or "Учасник"
