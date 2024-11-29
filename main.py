@@ -424,13 +424,6 @@ class BmpBot:
                     self.forwarded_messages.append(ForwardedMessage(forwarded_message.message_id, message.message_thread_id))
                     self._update_forwarded_messages_json()
 
-                    await context.bot.forward_message(
-                        chat_id=self.bmp_chat_id,
-                        from_chat_id=self.bmp_chat_id,
-                        message_id=message.message_id,
-                        message_thread_id=message.message_thread_id,
-                    )
-
                     await context.bot.send_message(
                         chat_id=self.bmp_chat_id,
                         message_thread_id=self.BOT_TOPIC_ID,
