@@ -618,7 +618,12 @@ class BmpBot:
 
     def _update_forwarded_messages_json(self) -> None:
         with open(file=self.FORWARDED_MESSAGES_JSON_FILE_NAME, mode="w", encoding="utf8") as file:
-            json.dump(self.forwarded_messages, file, ensure_ascii=False, indent=2)
+            json.dump(
+                [forwarded_message.to_dict() for forwarded_message in self.forwarded_messages],
+                file,
+                ensure_ascii=False,
+                indent=2,
+            )
 
     def _make_user_link(self, user: User) -> str:
         user_name = user.username or user.first_name or "Учасник"
