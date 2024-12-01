@@ -90,7 +90,7 @@ class User:
         )
 
 class ForwardedMessage:
-    def __init__(self, message_id: int, message_thread_id: int):
+    def __init__(self, message_id: int, message_thread_id: int | None):
         self.message_id = message_id
         self.message_thread_id = message_thread_id
 
@@ -421,7 +421,7 @@ class BmpBot:
                         message_thread_id=self.ALLOWED_TOPICS["НІЧНІ ПОВІДОМЛЕННЯ"],
                     )
 
-                    self.forwarded_messages.append(ForwardedMessage(forwarded_message.message_id, message.message_thread_id))
+                    self.forwarded_messages.append(ForwardedMessage(forwarded_message.message_id, message.message_thread_id if message.is_topic_message else None))
                     self._update_forwarded_messages_json()
 
                     await context.bot.send_message(
