@@ -456,7 +456,7 @@ class BmpBot:
             if not self._is_active(chat_member):
                 await context.bot.send_message(
                     chat_id=message.chat_id,
-                    text='Ви не є учасником ГО "Батько МАЄ ПРАВО"! Звертайтесь за телефоном +380 67 220 69 49',
+                    text='Ви не є учасником ГО "Батько МАЄ ПРАВО"! Телефонуйте за номером +380 67 220 69 49',
                     parse_mode="Markdown",
                 )
                 return
