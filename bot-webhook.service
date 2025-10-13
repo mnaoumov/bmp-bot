@@ -3,7 +3,7 @@ Description=Batko Mae Pravo Bot - Webhook
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /root/bmp-bot/webhook.py
+ExecStart=/root/bmp-bot/.venv/bin/python /root/bmp-bot/webhook.py
 WorkingDirectory=/root/bmp-bot
 Restart=always
 
