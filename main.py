@@ -463,7 +463,20 @@ class BmpBot:
 
             if user_id not in self.bot_registered_user_ids:
                 self.bot_registered_user_ids.add(user_id)
-                chat_member = next((u for u in self.users if u.id == user_id))
+                chat_member = next((u for u in self.users if u.id == user_id), None)
+                if chat_member is None:
+                    new_member = message.from_user
+                    chat_member = User(
+                        id=new_member.id,
+                        username=new_member.username,
+                        first_name=new_member.first_name,
+                        last_name=new_member.last_name,
+                        group_registration_date=self._now_in_kyiv(),
+                        bot_registration_date=None,
+                        is_active=True,
+                    )
+                    self.users.append(chat_member)
+
                 chat_member.bot_registration_date = self._now_in_kyiv()
                 self._update_users_json()
                 await context.bot.send_message(
