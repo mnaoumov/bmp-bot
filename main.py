@@ -544,43 +544,6 @@ class BmpBot:
             parse_mode="Markdown",
         )
 
-        await context.bot.send_message(
-            chat_id=self.bmp_chat_id,
-            message_thread_id=self.BOT_TOPIC_ID,
-            text=f"""*ВАЖЛИВА ІНФОРМАЦІЯ ВІД АДМІНІСТРАТОРІВ ТЕЛЕГРАМ ЧАТІВ ГО "БАТЬКО МАЄ ПРАВО*"
-
-В Телеграм чатах діє чат-бот @BatkoMaePravoBot.
-Бот було розроблено з метою надсилання важливих повідомлень від ГО "Батько МАЄ ПРАВО" для учасників груп.
-Натомість, у чат-боті зареєструвалося лише {bot_registered_users_count} учасників групи зі {active_users_count}.
-Це значно погіршує комунікацію.
-
-Адміністрацією ГО "Батько МАЄ ПРАВО" було прийнято рішення ввести правило обов'язкової реєстрації кожного учасника груп у чат-боті @BatkoMaePravoBot.
-З 01 червня 2024, учасники групи не зможуть надсилати повідомлення у групу, поки не зареєструються у чат-боті.
-
-Для того, щоб зареєструватися у чат-боті @BatkoMaePravoBot, треба написати йому одне приватне повідомлення з довільним текстом.
-
-У разі виникнення питань щодо роботи чат-бота, просимо звертатись до адміністратора груп і розробника чат-боту [Михайла](tg://user?id={self.developer_chat_id}).
-
-З повагою,
-ГО "Батько МАЄ ПРАВО"
-""",
-            parse_mode="Markdown",
-        )
-
-        bot_unregistered_users = [
-            user for user in active_users if user.bot_registration_date is None
-        ]
-        bot_unregistered_user_links = ", ".join(
-            [self._make_user_link(user) for user in bot_unregistered_users]
-        )
-
-        await context.bot.send_message(
-            chat_id=self.bmp_chat_id,
-            message_thread_id=self.BOT_TOPIC_ID,
-            text=f"Шановні {bot_unregistered_user_links}!\nПросимо зареєструватися у чат-боті!",
-            parse_mode="Markdown",
-        )
-
         if self._is_monday_or_friday(self._now_in_kyiv()):
             await context.bot.send_message(
                 chat_id=self.bmp_chat_id,
