@@ -180,7 +180,7 @@ class BmpBot:
     night_topic_link: str
     silence_rule_link: str = "https://t.me/c/1290587927/1/207964"
     registration_rule_link: str = "https://t.me/c/1290587927/1/207446"
-    payments_rule_link: str = "https://t.me/c/1290587927/113806/224345"
+    payments_rule_link: str = "https://t.me/c/1290587927/113806/263957"
 
     def main(self) -> None:
         """
